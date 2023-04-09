@@ -31,7 +31,7 @@ fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     selected: usize,
     applications: Vec<Application>,
-    matches: Vec<Application>,
+    matches: Vec<(Application, i64)>,
     search_str: String,
     icon_ids: HashMap<String, Option<TextureId>>,
     icons: Vec<RetainedImage>,
@@ -45,7 +45,7 @@ impl Default for MyApp {
         Self {
             selected: 0,
             applications: applications.clone(),
-            matches: applications,
+            matches: applications.into_iter().map(|a| (a, 0)).collect(),
             search_str: "".to_string(),
             icon_ids: HashMap::new(),
             icons: Vec::new(),
@@ -67,7 +67,7 @@ impl MyApp {
 fn find_application(
     search_str: &str,
     applications: &Vec<Application>,
-    matches: &mut Vec<Application>,
+    matches: &mut Vec<(Application, i64)>,
 ) {
     let matcher = SkimMatcherV2::default();
     matches.clear();
@@ -77,10 +77,12 @@ fn find_application(
             "{} = {} : {:?}",
             search_str, &application.name, search_match
         );
-        if search_match.is_some() {
-            matches.push(application.clone());
+        match search_match {
+            Some(score) => matches.push((application.clone(), score)),
+            None => {}
         }
     }
+    matches.sort_by(|a, b| b.1.cmp(&a.1));
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -90,7 +92,7 @@ impl eframe::App for MyApp {
             std::process::exit(0);
         }
         if execute {
-            self.matches[self.selected].run(true);
+            self.matches[self.selected].0.run(true);
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -106,7 +108,7 @@ impl eframe::App for MyApp {
                 .max_width(f32::INFINITY)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    for (i, application) in (&self.matches).into_iter().enumerate() {
+                    for (i, (application, _)) in (&self.matches).into_iter().enumerate() {
                         let label_text: RichText = RichText::new(application.name.clone());
                         let mut background_color: Color32 =
                             Color32::from_rgba_unmultiplied(0, 0, 0, 0);
