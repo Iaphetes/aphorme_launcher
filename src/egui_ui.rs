@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::apps::{collect_applications, find_application, Application};
 use eframe::{
-    egui::{self, Key, RichText},
+    egui::{self, Key, RichText, Style},
     epaint::{Color32, TextureId, Vec2},
 };
 use egui_extras::RetainedImage;
@@ -156,11 +156,14 @@ impl eframe::App for EguiUI {
                         let _ = self
                             .icon_ids
                             .try_insert(application.name.clone(), Some(icon.clone()));
+
                         let response = egui::Frame::none()
                             .fill(background_color)
                             .show(ui, |ui| {
-                                ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
-                                ui.label(label_text);
+                                ui.horizontal(|ui| {
+                                    ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
+                                    ui.label(label_text);
+                                })
                             })
                             .response;
                         if i == self.selected {
