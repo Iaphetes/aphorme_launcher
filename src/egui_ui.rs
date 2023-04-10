@@ -57,6 +57,54 @@ impl EguiUI {
             self.selected -= 1;
         }
     }
+    fn get_icon(&mut self, application: &Application, ctx: &egui::Context) -> Option<TextureId> {
+        match self.icon_ids.get(&application.name) {
+            Some(handle) => *handle,
+            None => {
+                match &application.icon_path {
+                    Some(icon_path) => {
+                        match icon_path.extension() {
+                            Some(ext) => match ext.to_str() {
+                                Some("png") | Some("jpg") | Some("jpeg") | Some("svg") => {
+                                    match std::fs::read(icon_path) {
+                                        Ok(data) => {
+                                            let image_res: Result<RetainedImage, String>;
+                                            if icon_path.to_string_lossy().ends_with("svg") {
+                                                image_res = egui_extras::image::RetainedImage::from_svg_bytes(&application.name, data.as_slice());
+                                            } else {
+                                                image_res = egui_extras::image::RetainedImage::from_image_bytes(&application.name, data.as_slice());
+                                            }
+                                            match image_res {
+                                                Ok(image) => {
+                                                    let id: TextureId = image.texture_id(&ctx);
+                                                    self.icons.push(image);
+                                                    Some(id)
+                                                }
+                                                Err(error) => {
+                                                    println!("Error while reading icon {}", error);
+                                                    None
+                                                }
+                                            }
+                                        }
+                                        Err(error) => {
+                                            println!("Error while parsing svg file {:?}", error);
+                                            None
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    println!("Unknown file extension {:?}", ext);
+                                    None
+                                }
+                            },
+                            None => None,
+                        }
+                    }
+                    None => None,
+                }
+            }
+        }
+    }
 }
 
 impl eframe::App for EguiUI {
@@ -83,7 +131,7 @@ impl eframe::App for EguiUI {
                 .max_width(f32::INFINITY)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    for (i, (application, _)) in (&self.matches).into_iter().enumerate() {
+                    for (i, (application, _)) in (&self.matches.clone()).into_iter().enumerate() {
                         let label_text: RichText = RichText::new(application.name.clone());
                         let mut background_color: Color32 =
                             Color32::from_rgba_unmultiplied(0, 0, 0, 0);
@@ -91,54 +139,27 @@ impl eframe::App for EguiUI {
                             background_color = Color32::from_rgba_unmultiplied(0, 100, 0, 128);
                         }
                         let icon_texture_handle: Option<TextureId> =
-                            match self.icon_ids.get(&application.name) {
-                                Some(handle) => *handle,
-                                None => match &application.icon_path {
-                                    Some(icon_path) => match icon_path.extension() {
-                                        Some(ext) => match ext.to_str() {
-                                            Some("svg") => match std::fs::read(icon_path) {
-                                                Ok(data) => match egui_extras::image::RetainedImage::from_svg_bytes(&application.name, data.as_slice()){
-                                                Ok(image) => {
-                                                    let id : TextureId = image.texture_id(&ctx);
-                                                    self.icons.push(image);
-                                                    Some(id)}
-                                                ,
-                                                Err(error) => {println!("Error while reading icon {}", error); None}
-                                            },Err(error) => {
-                                                println!("Error while parsing svg file {:?}", error);
-                                                None}
-                                            },
-                                            Some("png") | Some("jpg") | Some("jpeg") => {match std::fs::read(icon_path) {
-                                                Ok(data) => match egui_extras::image::RetainedImage::from_image_bytes(&application.name, data.as_slice()){
-                                                Ok(image) => {
-                                                    let id : TextureId = image.texture_id(&ctx);
-                                                    self.icons.push(image);
-                                                    Some(id)},
-                                                Err(error) => {println!("Error while reading icon {}", error); None}
-                                            },Err(error) => {
-                                                println!("Error while parsing svg file {:?}", error);
-                                                None}
-                                            }}
-                                            _ => {
-                                                println!("Unknown file extension {:?}", ext);
-                                                None
-                                            }
-                                        },
-                                        None => None,
-                                    },
-                                    None => None,
-                                }
-                            };
-                        let icon: TextureId =
-                        match icon_texture_handle{
+                            self.get_icon(application, ctx);
+                        let icon: TextureId = match icon_texture_handle {
                             Some(handle) => handle,
-                            None => ctx.load_texture(&application.name, egui::ColorImage::new([8, 8], Color32::from_rgba_unmultiplied(0, 0, 0, 0)), Default::default()).id()
+                            None => ctx
+                                .load_texture(
+                                    &application.name,
+                                    egui::ColorImage::new(
+                                        [8, 8],
+                                        Color32::from_rgba_unmultiplied(0, 0, 0, 0),
+                                    ),
+                                    Default::default(),
+                                )
+                                .id(),
                         };
-                        let _ = self.icon_ids.try_insert(application.name.clone(), Some(icon.clone()));
+                        let _ = self
+                            .icon_ids
+                            .try_insert(application.name.clone(), Some(icon.clone()));
                         let response = egui::Frame::none()
                             .fill(background_color)
                             .show(ui, |ui| {
-                                ui.image(icon, Vec2{x: 8.0, y: 8.0});
+                                ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
                                 ui.label(label_text);
                             })
                             .response;
