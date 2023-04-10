@@ -2,11 +2,12 @@ use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
 use rayon::prelude::*;
-use std::env;
 use std::fs;
-use std::fs::ReadDir;
 use std::path::PathBuf;
 use std::process::Command;
+
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 const APPLICATION_PATHS: [&str; 4] = [
     "/usr/share/applications",
     "/usr/local/share/applications",
@@ -18,7 +19,7 @@ use std::cmp::Ordering;
 #[derive(Clone, Eq, PartialEq)]
 enum ApplicationType {
     DESKTOPFILE,
-    BINARY,
+    // BINARY,
 }
 #[derive(Clone, Eq, PartialEq)]
 pub struct Application {
@@ -55,11 +56,10 @@ impl Application {
         }
     }
 }
-fn search_icons(name: &str) {}
+// fn search_icons(name: &str) {}
 pub fn collect_applications() -> Vec<Application> {
     let mut applications: Vec<Application> = Vec::new();
 
-    let path_var: String = std::env::var("PATH").expect("Path variable not found");
     for path in APPLICATION_PATHS {
         println!("{path:?}");
 
@@ -124,7 +124,7 @@ pub fn collect_applications() -> Vec<Application> {
                                         Some(Application {
                                             name: name.into(),
                                             command: command.into(),
-                                            icon_path: icon_path,
+                                            icon_path,
                                             application_type: ApplicationType::DESKTOPFILE,
                                         })
                                     } else {
@@ -154,4 +154,24 @@ pub fn collect_applications() -> Vec<Application> {
         }
     }
     return applications;
+}
+pub fn find_application(
+    search_str: &str,
+    applications: &Vec<Application>,
+    matches: &mut Vec<(Application, i64)>,
+) {
+    let matcher = SkimMatcherV2::default();
+    matches.clear();
+    for application in applications {
+        let search_match: Option<i64> = matcher.fuzzy_match(&application.name, search_str);
+        println!(
+            "{} = {} : {:?}",
+            search_str, &application.name, search_match
+        );
+        match search_match {
+            Some(score) => matches.push((application.clone(), score)),
+            None => {}
+        }
+    }
+    matches.sort_by(|a, b| b.1.cmp(&a.1));
 }
