@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "A program launcher for X11 and Wayland"
 license-file = "LICENSE.md"
+keywords = ["program-launcher", "linux-utility"]
+repository = "https://github.com/Iaphetes/aphorme_launcher"
+homepage = "https://github.com/Iaphetes/aphorme_launcher"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -17,7 +20,3 @@ egui_extras = {version = "0.21.0", features = ["image", "svg"]}
 jpeg-decoder = "0.3"
 image = { version = "0.24", features = ["jpeg", "png"] }
 rayon = "1.7"
-[profile.release]
-debug = 1
-[rust]
-debuginfo-level = 1
