@@ -23,12 +23,20 @@ pub fn launch_egui_ui() -> Result<(), eframe::Error> {
     eframe::run_native("Aphorme", options, Box::new(|_cc| Box::new(app)))
 }
 struct EguiUI {
+    /// Selected element in list of applications
     selected: usize,
+    /// List of applications on the system
     applications: Vec<Application>,
+    /// Matches found with the `search_str` with the corresponding match score
     matches: Vec<(Application, i64)>,
+    /// The user entered search string
     search_str: String,
+    /// Map containing the Optional TextureIds of the icons matched to the corresponding
+    /// application name
     icon_ids: HashMap<String, Option<TextureId>>,
+    /// The application icons
     icons: Vec<RetainedImage>,
+    /// Empty icon to display if no icon has been found yet for the application
     placeholder_icon: Option<TextureId>,
 }
 
@@ -48,6 +56,8 @@ impl Default for EguiUI {
     }
 }
 impl EguiUI {
+    /// Custom scrolling function using the arrow keys or the scroll delta of the mouse wheel.
+    /// Always keeps the selected item on top
     fn scroll(&mut self, ctx: &egui::Context) {
         let down: bool = ctx.input(|i| i.key_pressed(Key::ArrowDown) || i.scroll_delta.y < -1.0);
         let up: bool = ctx.input(|i| i.key_pressed(Key::ArrowUp) || i.scroll_delta.y > 1.0);
@@ -58,6 +68,8 @@ impl EguiUI {
             self.selected -= 1;
         }
     }
+    /// Get the icon from the HashMap. If it is not found load it in and add it to the HashMap.
+    /// Returns None if no icon can be found
     fn get_icon(&mut self, application: &Application, ctx: &egui::Context) -> Option<TextureId> {
         match self.icon_ids.get(&application.name) {
             Some(handle) => *handle,

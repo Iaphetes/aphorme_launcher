@@ -2,8 +2,8 @@
 name = "aphorme"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
 description = "A program launcher for X11 and Wayland"
+license = "GNU GPLv3"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

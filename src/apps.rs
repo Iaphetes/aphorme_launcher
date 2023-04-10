@@ -8,6 +8,8 @@ use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+/// The paths where the desktop files and binaries are located. Will be exported to a config file
+/// and inserted in the defaults
 const APPLICATION_PATHS: [&str; 4] = [
     "/usr/share/applications",
     "/usr/local/share/applications",
@@ -16,18 +18,24 @@ const APPLICATION_PATHS: [&str; 4] = [
 ];
 
 use std::cmp::Ordering;
+/// The type of application. Either a binary (not yet supported) or a Desktop file
 #[derive(Clone, Eq, PartialEq)]
 enum ApplicationType {
     DESKTOPFILE,
     // BINARY,
 }
+/// A specific application found on the system
 #[derive(Clone, Eq, PartialEq)]
 pub struct Application {
+    /// Name of the application as stated in the desktop file or the name of the executable if
+    /// Application Type is binary
     pub name: String,
+    /// The command to execute. Either the entry 'Exec' in the Desktop file or path to executable
     command: String,
+    /// Optional icon path, if defined in the desktop file and found in the system
     pub icon_path: Option<PathBuf>,
+    /// The type of application
     application_type: ApplicationType,
-    // entry: Option<Entry>
 }
 impl Ord for Application {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -40,9 +48,8 @@ impl PartialOrd for Application {
     }
 }
 impl Application {
+    /// Executes the program and exits if quit is true
     pub fn run(&self, quit: bool) {
-        println!("Running {}", self.name);
-        println!("with command {}", self.command);
         let split_command: Vec<&str> = self.command.split(" ").collect();
         let mut args: Vec<&str> = Vec::new();
         for arg in split_command[1..].into_iter() {
@@ -57,14 +64,13 @@ impl Application {
     }
 }
 // fn search_icons(name: &str) {}
+/// Find applications in the APPLICATION_PATHS and return them as a `Vec<Application>`
 pub fn collect_applications() -> Vec<Application> {
     let mut applications: Vec<Application> = Vec::new();
 
     for path in APPLICATION_PATHS {
         println!("{path:?}");
 
-        // let files: Vec<Result<fs::DirEntry, std::io::Error>> =
-        //     .unwrap().collect();
         match fs::read_dir(path) {
             Ok(files) => {
                 let path_applications: Vec<Option<Application>> = files
@@ -155,6 +161,7 @@ pub fn collect_applications() -> Vec<Application> {
     }
     return applications;
 }
+/// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
 pub fn find_application(
     search_str: &str,
     applications: &Vec<Application>,
