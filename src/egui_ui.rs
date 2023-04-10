@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::apps::{collect_applications, find_application, Application};
 use eframe::{
-    egui::{self, Key, RichText, Style},
+    egui::{self, Key, RichText},
     epaint::{Color32, TextureId, Vec2},
 };
 use egui_extras::RetainedImage;
@@ -29,13 +29,13 @@ struct EguiUI {
     search_str: String,
     icon_ids: HashMap<String, Option<TextureId>>,
     icons: Vec<RetainedImage>,
+    placeholder_icon: Option<TextureId>,
 }
 
 impl Default for EguiUI {
     fn default() -> Self {
         let mut applications: Vec<Application> = collect_applications();
         applications.sort();
-
         Self {
             selected: 0,
             applications: applications.clone(),
@@ -43,6 +43,7 @@ impl Default for EguiUI {
             search_str: "".to_string(),
             icon_ids: HashMap::new(),
             icons: Vec::new(),
+            placeholder_icon: None,
         }
     }
 }
@@ -117,7 +118,6 @@ impl eframe::App for EguiUI {
         if execute {
             self.matches[self.selected].0.run(true);
         }
-
         egui::CentralPanel::default().show(ctx, |ui| {
             let response = ui.add(egui::TextEdit::singleline(&mut self.search_str));
             response.request_focus();
@@ -142,16 +142,23 @@ impl eframe::App for EguiUI {
                             self.get_icon(application, ctx);
                         let icon: TextureId = match icon_texture_handle {
                             Some(handle) => handle,
-                            None => ctx
-                                .load_texture(
-                                    &application.name,
-                                    egui::ColorImage::new(
-                                        [8, 8],
-                                        Color32::from_rgba_unmultiplied(0, 0, 0, 0),
-                                    ),
-                                    Default::default(),
-                                )
-                                .id(),
+                            None => match self.placeholder_icon {
+                                Some(icon_handle) => icon_handle,
+                                None => {
+                                    let icon_handle = ctx
+                                        .load_texture(
+                                            "placeholder",
+                                            egui::ColorImage::new(
+                                                [8, 8],
+                                                Color32::from_rgba_unmultiplied(0, 0, 0, 0),
+                                            ),
+                                            Default::default(),
+                                        )
+                                        .id();
+                                    self.placeholder_icon = Some(icon_handle);
+                                    icon_handle
+                                }
+                            },
                         };
                         let _ = self
                             .icon_ids
