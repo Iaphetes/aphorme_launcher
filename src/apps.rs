@@ -50,6 +50,7 @@ impl PartialOrd for Application {
 impl Application {
     /// Executes the program and exits if quit is true
     pub fn run(&self, quit: bool) {
+        // println!("command {:?}", self.command);
         let split_command: Vec<&str> = self.command.split(" ").collect();
         let mut args: Vec<&str> = Vec::new();
         for arg in split_command[1..].into_iter() {
@@ -57,7 +58,10 @@ impl Application {
                 args.push(arg.to_owned());
             }
         }
-        Command::new(split_command[0]).args(args).spawn().unwrap();
+        Command::new(split_command[0].trim_matches('\"'))
+            .args(args)
+            .spawn()
+            .unwrap();
         if quit {
             std::process::exit(0);
         }
