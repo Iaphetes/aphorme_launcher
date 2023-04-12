@@ -13,6 +13,13 @@ Most good program launchers like Rofi, Fuzzel etc. only support either X11 or wa
 There are some cool projects like Wofi that aim to port X11 programs to Wayland. However I found at least Wofi to have some bugs with my window setup.
 ## 3. I wanted a project that can be reasonably finished
 I tend to take on huge projects which never end. I saw this as a comparatively simple project.
+# Configuration
+Configuration is now found in $HOME/.config/aphorme/config.toml
+## gui_cfg
+Options for the gui.
+### icons: boolean
+Enable or disable icon loading.
+
 # Known issues
 ## Slow startup time
 Due to synchronous file loading the startup times are very slow. This can be fixed by either asynchronously loading icons, using a faster method of icon discovery (the library I am using seems to has to execute gsettings every time, which is very slow)
