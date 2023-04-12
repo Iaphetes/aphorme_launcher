@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use crate::apps::{collect_applications, find_application, Application};
+use crate::config::GuiCFG;
 use eframe::{
     egui::{self, Key, RichText},
     epaint::{Color32, TextureId, Vec2},
 };
 use egui_extras::RetainedImage;
-pub fn launch_egui_ui() -> Result<(), eframe::Error> {
+pub fn launch_egui_ui(gui_cfg: &GuiCFG) -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     // tracing_subscriber::fmt::init();
 
@@ -18,7 +19,17 @@ pub fn launch_egui_ui() -> Result<(), eframe::Error> {
         // fullscreen: true,
         ..Default::default()
     };
-    let app: EguiUI = EguiUI::default();
+    let mut applications: Vec<Application> = collect_applications(gui_cfg.icon);
+    applications.sort();
+    let app: EguiUI = EguiUI {
+        selected: 0,
+        applications: applications.clone(),
+        matches: applications.into_iter().map(|a| (a, 0)).collect(),
+        search_str: "".to_string(),
+        icon_ids: HashMap::new(),
+        icons: Vec::new(),
+        placeholder_icon: None,
+    };
 
     eframe::run_native("Aphorme", options, Box::new(|_cc| Box::new(app)))
 }
@@ -42,7 +53,7 @@ struct EguiUI {
 
 impl Default for EguiUI {
     fn default() -> Self {
-        let mut applications: Vec<Application> = collect_applications();
+        let mut applications: Vec<Application> = collect_applications(true);
         applications.sort();
         Self {
             selected: 0,

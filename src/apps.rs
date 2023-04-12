@@ -69,9 +69,10 @@ impl Application {
 }
 // fn search_icons(name: &str) {}
 /// Find applications in the APPLICATION_PATHS and return them as a `Vec<Application>`
-pub fn collect_applications() -> Vec<Application> {
+pub fn collect_applications(get_icons: bool) -> Vec<Application> {
     let mut applications: Vec<Application> = Vec::new();
 
+    let icon_theme: String = get_icon_theme().unwrap();
     for path in APPLICATION_PATHS {
         println!("{path:?}");
 
@@ -113,10 +114,10 @@ pub fn collect_applications() -> Vec<Application> {
                                                 "Incomplete Desktop file {}",
                                                 file.path().to_string_lossy()
                                             ));
-                                        let icon_path: Option<PathBuf> =
+                                        let icon_path: Option<PathBuf> = if get_icons {
                                             match entry.section("Desktop Entry").attr("Icon") {
                                                 Some(path) => match lookup_icon(path.to_owned())
-                                                    .from_theme(get_icon_theme().unwrap())
+                                                    .from_theme(icon_theme.clone())
                                                     .with_size(8)
                                                     .next()
                                                 {
@@ -130,7 +131,10 @@ pub fn collect_applications() -> Vec<Application> {
                                                 },
 
                                                 None => None,
-                                            };
+                                            }
+                                        } else {
+                                            None
+                                        };
                                         Some(Application {
                                             name: name.into(),
                                             command: command.into(),
