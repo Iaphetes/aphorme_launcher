@@ -16,6 +16,7 @@ pub fn launch_egui_ui(gui_cfg: &GuiCFG) -> Result<(), eframe::Error> {
         always_on_top: true,
         decorated: false,
         centered: true,
+        resizable: false,
         // fullscreen: true,
         ..Default::default()
     };

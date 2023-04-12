@@ -3,7 +3,7 @@
 mod apps;
 mod config;
 mod egui_ui;
-use crate::config::{load_config, Config, GuiCFG};
+use crate::config::{load_config, Config};
 fn main() {
     // let mut config_path: PathBuf = home_dir().expect("No home directory ");
     // config_path.push(".config/aphorme/config.toml");
