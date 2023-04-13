@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
-use crate::apps::{collect_applications, find_application, Application};
+use crate::apps::{collect_applications, Application, ApplicationManager};
 use crate::config::GuiCFG;
 use eframe::{
     egui::{self, Key, RichText},
     epaint::{Color32, TextureId, Vec2},
 };
 use egui_extras::RetainedImage;
-pub fn launch_egui_ui(gui_cfg: &GuiCFG) -> Result<(), eframe::Error> {
+pub fn launch_egui_ui(
+    gui_cfg: &GuiCFG,
+    application_manager: ApplicationManager,
+) -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     // tracing_subscriber::fmt::init();
 
@@ -24,8 +27,9 @@ pub fn launch_egui_ui(gui_cfg: &GuiCFG) -> Result<(), eframe::Error> {
     applications.sort();
     let app: EguiUI = EguiUI {
         selected: 0,
-        applications: applications.clone(),
-        matches: applications.into_iter().map(|a| (a, 0)).collect(),
+        application_manager,
+        // applications: applications.clone(),
+        // matches: applications.into_iter().map(|a| (a, 0)).collect(),
         search_str: "".to_string(),
         icon_ids: HashMap::new(),
         icons: Vec::new(),
@@ -37,10 +41,11 @@ pub fn launch_egui_ui(gui_cfg: &GuiCFG) -> Result<(), eframe::Error> {
 struct EguiUI {
     /// Selected element in list of applications
     selected: usize,
-    /// List of applications on the system
-    applications: Vec<Application>,
-    /// Matches found with the `search_str` with the corresponding match score
-    matches: Vec<(Application, i64)>,
+    application_manager: ApplicationManager,
+    // /// List of applications on the system
+    // applications: Vec<Application>,
+    // /// Matches found with the `search_str` with the corresponding match score
+    // matches: Vec<(Application, i64)>,
     /// The user entered search string
     search_str: String,
     /// Map containing the Optional TextureIds of the icons matched to the corresponding
@@ -52,21 +57,6 @@ struct EguiUI {
     placeholder_icon: Option<TextureId>,
 }
 
-impl Default for EguiUI {
-    fn default() -> Self {
-        let mut applications: Vec<Application> = collect_applications(true);
-        applications.sort();
-        Self {
-            selected: 0,
-            applications: applications.clone(),
-            matches: applications.into_iter().map(|a| (a, 0)).collect(),
-            search_str: "".to_string(),
-            icon_ids: HashMap::new(),
-            icons: Vec::new(),
-            placeholder_icon: None,
-        }
-    }
-}
 impl EguiUI {
     /// Custom scrolling function using the arrow keys or the scroll delta of the mouse wheel.
     /// Always keeps the selected item on top
@@ -140,13 +130,13 @@ impl eframe::App for EguiUI {
             std::process::exit(0);
         }
         if execute {
-            self.matches[self.selected].0.run(true);
+            self.application_manager.execute_first_match(self.selected);
         }
         egui::CentralPanel::default().show(ctx, |ui| {
             let response = ui.add(egui::TextEdit::singleline(&mut self.search_str));
             response.request_focus();
             if response.changed() {
-                find_application(&self.search_str, &self.applications, &mut self.matches);
+                self.application_manager.find_application(&self.search_str);
                 self.selected = 0;
             }
             ui.separator();
@@ -155,7 +145,10 @@ impl eframe::App for EguiUI {
                 .max_width(f32::INFINITY)
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
-                    for (i, (application, _)) in (&self.matches.clone()).into_iter().enumerate() {
+                    for (i, (application, _)) in (&self.application_manager.matches.clone())
+                        .into_iter()
+                        .enumerate()
+                    {
                         let label_text: RichText = RichText::new(application.name.clone());
                         let mut background_color: Color32 =
                             Color32::from_rgba_unmultiplied(0, 0, 0, 0);

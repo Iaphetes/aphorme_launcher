@@ -1,13 +1,17 @@
+use crate::config::AppCFG;
+// use eframe::epaint::ahash::HashMap;
 use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use std::cmp::Ordering;
 /// The paths where the desktop files and binaries are located. Will be exported to a config file
 /// and inserted in the defaults
 const APPLICATION_PATHS: [&str; 4] = [
@@ -16,8 +20,45 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
+pub struct ApplicationManager {
+    applications: Vec<Application>,
+    pub matches: Vec<(Application, i64)>,
+}
+impl ApplicationManager {
+    pub fn new(config: AppCFG, icon: bool) -> ApplicationManager {
+        let mut applications: Vec<Application> = collect_applications(icon);
+        applications.sort();
 
-use std::cmp::Ordering;
+        ApplicationManager {
+            applications: applications.clone(),
+            matches: applications
+                .into_iter()
+                .map(|app| (app.clone(), 0))
+                .collect(),
+        }
+    }
+    /// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
+    pub fn find_application(&mut self, search_str: &str) {
+        let matcher = SkimMatcherV2::default();
+        self.matches.clear();
+        for application in &self.applications {
+            let search_match: Option<i64> = matcher.fuzzy_match(&application.name, search_str);
+            println!(
+                "{} = {} : {:?}",
+                search_str, &application.name, search_match
+            );
+            match search_match {
+                Some(score) => self.matches.push((application.clone(), score)),
+                None => {}
+            }
+        }
+        self.matches.sort_by(|a, b| b.1.cmp(&a.1));
+    }
+    pub fn execute_first_match(&self, selected: usize) {
+        self.matches[selected].0.run(true);
+    }
+}
+
 /// The type of application. Either a binary (not yet supported) or a Desktop file
 #[derive(Clone, Eq, PartialEq)]
 enum ApplicationType {
@@ -168,25 +209,4 @@ pub fn collect_applications(get_icons: bool) -> Vec<Application> {
         }
     }
     return applications;
-}
-/// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
-pub fn find_application(
-    search_str: &str,
-    applications: &Vec<Application>,
-    matches: &mut Vec<(Application, i64)>,
-) {
-    let matcher = SkimMatcherV2::default();
-    matches.clear();
-    for application in applications {
-        let search_match: Option<i64> = matcher.fuzzy_match(&application.name, search_str);
-        println!(
-            "{} = {} : {:?}",
-            search_str, &application.name, search_match
-        );
-        match search_match {
-            Some(score) => matches.push((application.clone(), score)),
-            None => {}
-        }
-    }
-    matches.sort_by(|a, b| b.1.cmp(&a.1));
 }
