@@ -5,9 +5,14 @@ use std::path::PathBuf;
 pub struct Config {
     pub gui_cfg: GuiCFG,
 }
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GuiCFG {
     pub icon: bool,
+}
+impl Default for GuiCFG {
+    fn default() -> Self {
+        GuiCFG { icon: true }
+    }
 }
 pub fn load_config(path: Option<PathBuf>) -> Config {
     match path {

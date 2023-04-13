@@ -150,7 +150,7 @@ checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
 name = "aphorme"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "confy",
  "dirs 5.0.0",

@@ -1,3 +1,14 @@
+# Changes
+## 0.1.3 
+### Features
+- A config file was added (see Configuration). At the moment only icon loading is configured here.
+### Fixes
+- Launcher is forced into floating mode on tiling window managers to work like rofi etc.
+
+## 0.1.4 
+### Fixes
+- Changed the default for icons. Previously they were disabled by default now the default is enabled.
+If you want to change that see the Configuration part in this README
 # A Linux Program Launcher
 This is a Program Launcher written in Rust.
 For the moment it uses multiple different UI toolkits, namely:

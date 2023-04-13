@@ -1,6 +1,6 @@
 [package]
 name = "aphorme"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "A program launcher for X11 and Wayland"
 license-file = "LICENSE.md"
