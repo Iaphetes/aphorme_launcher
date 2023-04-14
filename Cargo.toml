@@ -1,8 +1,9 @@
 [package]
 name = "aphorme"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "A program launcher for X11 and Wayland"
+license = "GPL-3.0"
 license-file = "LICENSE.md"
 keywords = ["program-launcher", "linux-utility"]
 repository = "https://github.com/Iaphetes/aphorme_launcher"

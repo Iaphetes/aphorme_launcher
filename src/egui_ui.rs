@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::apps::{collect_applications, Application, ApplicationManager};
+use crate::apps::{Application, ApplicationManager};
 use crate::config::GuiCFG;
 use eframe::{
     egui::{self, Key, RichText},
@@ -8,12 +8,9 @@ use eframe::{
 };
 use egui_extras::RetainedImage;
 pub fn launch_egui_ui(
-    gui_cfg: &GuiCFG,
+    gui_cfg: GuiCFG,
     application_manager: ApplicationManager,
 ) -> Result<(), eframe::Error> {
-    // Log to stdout (if you run with `RUST_LOG=debug`).
-    // tracing_subscriber::fmt::init();
-
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(320.0, 240.0)),
         always_on_top: true,
@@ -23,29 +20,18 @@ pub fn launch_egui_ui(
         // fullscreen: true,
         ..Default::default()
     };
-    let mut applications: Vec<Application> = collect_applications(gui_cfg.icon);
-    applications.sort();
-    let app: EguiUI = EguiUI {
-        selected: 0,
-        application_manager,
-        // applications: applications.clone(),
-        // matches: applications.into_iter().map(|a| (a, 0)).collect(),
-        search_str: "".to_string(),
-        icon_ids: HashMap::new(),
-        icons: Vec::new(),
-        placeholder_icon: None,
-    };
 
-    eframe::run_native("Aphorme", options, Box::new(|_cc| Box::new(app)))
+    eframe::run_native(
+        "Aphorme",
+        options,
+        Box::new(move |_cc| Box::new(EguiUI::new(gui_cfg.clone(), application_manager))),
+    )
 }
 struct EguiUI {
     /// Selected element in list of applications
     selected: usize,
+    /// Struct managing searching for, loading icons of, matching and running applications
     application_manager: ApplicationManager,
-    // /// List of applications on the system
-    // applications: Vec<Application>,
-    // /// Matches found with the `search_str` with the corresponding match score
-    // matches: Vec<(Application, i64)>,
     /// The user entered search string
     search_str: String,
     /// Map containing the Optional TextureIds of the icons matched to the corresponding
@@ -55,9 +41,22 @@ struct EguiUI {
     icons: Vec<RetainedImage>,
     /// Empty icon to display if no icon has been found yet for the application
     placeholder_icon: Option<TextureId>,
+    /// The GUI configuration
+    gui_cfg: GuiCFG,
 }
 
 impl EguiUI {
+    pub fn new(gui_cfg: GuiCFG, application_manager: ApplicationManager) -> Self {
+        Self {
+            selected: 0,
+            application_manager,
+            search_str: "".to_string(),
+            icon_ids: HashMap::new(),
+            icons: Vec::new(),
+            placeholder_icon: None,
+            gui_cfg,
+        }
+    }
     /// Custom scrolling function using the arrow keys or the scroll delta of the mouse wheel.
     /// Always keeps the selected item on top
     fn scroll(&mut self, ctx: &egui::Context) {
@@ -92,7 +91,12 @@ impl EguiUI {
                                             match image_res {
                                                 Ok(image) => {
                                                     let id: TextureId = image.texture_id(&ctx);
+                                                    let _ = self.icon_ids.try_insert(
+                                                        application.name.clone(),
+                                                        Some(id.clone()),
+                                                    );
                                                     self.icons.push(image);
+
                                                     Some(id)
                                                 }
                                                 Err(error) => {
@@ -131,6 +135,9 @@ impl eframe::App for EguiUI {
         }
         if execute {
             self.application_manager.execute_first_match(self.selected);
+        }
+        if self.gui_cfg.icon {
+            self.application_manager.load_next_icons(5);
         }
         egui::CentralPanel::default().show(ctx, |ui| {
             let response = ui.add(egui::TextEdit::singleline(&mut self.search_str));
@@ -177,15 +184,13 @@ impl eframe::App for EguiUI {
                                 }
                             },
                         };
-                        let _ = self
-                            .icon_ids
-                            .try_insert(application.name.clone(), Some(icon.clone()));
-
                         let response = egui::Frame::none()
                             .fill(background_color)
                             .show(ui, |ui| {
                                 ui.horizontal(|ui| {
-                                    ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
+                                    if self.gui_cfg.icon {
+                                        ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
+                                    }
                                     ui.label(label_text);
                                 })
                             })
@@ -197,5 +202,6 @@ impl eframe::App for EguiUI {
                     }
                 });
         });
+        ctx.request_repaint();
     }
 }

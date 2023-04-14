@@ -4,7 +4,6 @@ use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
 use rayon::prelude::*;
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -23,18 +22,27 @@ const APPLICATION_PATHS: [&str; 4] = [
 pub struct ApplicationManager {
     applications: Vec<Application>,
     pub matches: Vec<(Application, i64)>,
+    icon_theme: String,
+    loaded_icons: usize,
 }
 impl ApplicationManager {
-    pub fn new(config: AppCFG, icon: bool) -> ApplicationManager {
-        let mut applications: Vec<Application> = collect_applications(icon);
+    pub fn new(_config: AppCFG, icon: bool) -> ApplicationManager {
+        let mut applications: Vec<Application> = collect_applications();
         applications.sort();
-
         ApplicationManager {
             applications: applications.clone(),
             matches: applications
                 .into_iter()
                 .map(|app| (app.clone(), 0))
                 .collect(),
+            icon_theme: match icon {
+                true => get_icon_theme().unwrap_or_else(|| {
+                    println!("No icon theme found");
+                    "".to_string()
+                }),
+                false => String::new(),
+            },
+            loaded_icons: 0,
         }
     }
     /// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
@@ -57,6 +65,47 @@ impl ApplicationManager {
     pub fn execute_first_match(&self, selected: usize) {
         self.matches[selected].0.run(true);
     }
+    pub fn load_next_icons(&mut self, amount: usize) -> bool {
+        let mut is_done: bool = false;
+        if self.loaded_icons < self.applications.len() {
+            let last: usize = if self.loaded_icons + amount >= self.applications.len() {
+                self.applications.len() - 1
+            } else {
+                self.loaded_icons + amount
+            };
+            // println!("Last {}", last);
+            for i in self.loaded_icons..last {
+                // println!("i {}", i);
+                self.applications[i].icon_path = match &self.applications[i].icon_name {
+                    Some(path) => match lookup_icon(path.to_owned())
+                        .from_theme(&self.icon_theme)
+                        .with_size(8)
+                        .next()
+                    {
+                        Some(icon_path) => match icon_path {
+                            Ok(linicon_path) => Some(linicon_path.path.clone()),
+                            Err(_) => None,
+                        },
+                        None => None,
+                    },
+
+                    None => None,
+                };
+
+                match (&mut self.matches)
+                    .into_iter()
+                    .find(|m| m.0.name == self.applications[i].name)
+                {
+                    Some(m) => m.0.icon_path = self.applications[i].icon_path.clone(),
+                    None => {}
+                };
+            }
+            self.loaded_icons += amount;
+        } else {
+            is_done = true;
+        }
+        return is_done;
+    }
 }
 
 /// The type of application. Either a binary (not yet supported) or a Desktop file
@@ -75,6 +124,7 @@ pub struct Application {
     command: String,
     /// Optional icon path, if defined in the desktop file and found in the system
     pub icon_path: Option<PathBuf>,
+    pub icon_name: Option<String>,
     /// The type of application
     application_type: ApplicationType,
 }
@@ -110,10 +160,9 @@ impl Application {
 }
 // fn search_icons(name: &str) {}
 /// Find applications in the APPLICATION_PATHS and return them as a `Vec<Application>`
-pub fn collect_applications(get_icons: bool) -> Vec<Application> {
+pub fn collect_applications() -> Vec<Application> {
     let mut applications: Vec<Application> = Vec::new();
 
-    let icon_theme: String = get_icon_theme().unwrap();
     for path in APPLICATION_PATHS {
         println!("{path:?}");
 
@@ -155,31 +204,17 @@ pub fn collect_applications(get_icons: bool) -> Vec<Application> {
                                                 "Incomplete Desktop file {}",
                                                 file.path().to_string_lossy()
                                             ));
-                                        let icon_path: Option<PathBuf> = if get_icons {
+                                        let icon_path: Option<PathBuf> = None;
+                                        let icon_name: Option<String> =
                                             match entry.section("Desktop Entry").attr("Icon") {
-                                                Some(path) => match lookup_icon(path.to_owned())
-                                                    .from_theme(icon_theme.clone())
-                                                    .with_size(8)
-                                                    .next()
-                                                {
-                                                    Some(icon_path) => match icon_path {
-                                                        Ok(linicon_path) => {
-                                                            Some(linicon_path.path.clone())
-                                                        }
-                                                        Err(_) => None,
-                                                    },
-                                                    None => None,
-                                                },
-
+                                                Some(icon) => Some(icon.to_owned()),
                                                 None => None,
-                                            }
-                                        } else {
-                                            None
-                                        };
+                                            };
                                         Some(Application {
                                             name: name.into(),
                                             command: command.into(),
                                             icon_path,
+                                            icon_name,
                                             application_type: ApplicationType::DESKTOPFILE,
                                         })
                                     } else {

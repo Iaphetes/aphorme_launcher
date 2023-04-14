@@ -1,14 +1,4 @@
-# Changes
-## 0.1.3 
-### Features
-- A config file was added (see Configuration). At the moment only icon loading is configured here.
-### Fixes
-- Launcher is forced into floating mode on tiling window managers to work like rofi etc.
 
-## 0.1.4 
-### Fixes
-- Changed the default for icons. Previously they were disabled by default now the default is enabled.
-If you want to change that see the Configuration part in this README
 # A Linux Program Launcher
 This is a Program Launcher written in Rust.
 For the moment it uses multiple different UI toolkits, namely:
@@ -32,7 +22,19 @@ Options for the gui.
 Enable or disable icon loading.
 
 # Known issues
-## Slow startup time
-Due to synchronous file loading the startup times are very slow. This can be fixed by either asynchronously loading icons, using a faster method of icon discovery (the library I am using seems to has to execute gsettings every time, which is very slow)
 ## Scrolling is somewhat weird (and the scroll bar is visible) in egui
 The egui ScrollArea does not allow for movement using the arrow keys. This means I had to implement that myself. The method I chose (just remembering the index) does however overwrite the scrolling using the mousewheel/touchpad gestures etc. This means I had to implement the scrolling with the scrollwheel myself, which 'fights' against the default scrolling. This causes minor visual glitches but so far no actual bugs
+# Changes
+## 0.1.3 
+### Features
+- A config file was added (see Configuration). At the moment only icon loading is configured here.
+### Fixes
+- Launcher is forced into floating mode on tiling window managers to work like rofi etc.
+
+## 0.1.4 
+### Fixes
+- Changed the default for icons. Previously they were disabled by default now the default is enabled.
+If you want to change that see the Configuration part in this README
+## 0.1.5
+### Fixes
+- Improved startup time by loading icons in batches of 5 at every repaint of the UI

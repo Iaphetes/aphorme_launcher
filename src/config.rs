@@ -6,7 +6,7 @@ pub struct Config {
     pub gui_cfg: GuiCFG,
     pub app_cfg: Option<AppCFG>,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuiCFG {
     pub icon: bool,
 }
