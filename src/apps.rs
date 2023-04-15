@@ -19,6 +19,7 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
+#[derive(Default)]
 pub struct ApplicationManager {
     applications: Vec<Application>,
     pub matches: Vec<(Application, i64)>,
@@ -109,13 +110,14 @@ impl ApplicationManager {
 }
 
 /// The type of application. Either a binary (not yet supported) or a Desktop file
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Default)]
 enum ApplicationType {
+    #[default]
     DESKTOPFILE,
     // BINARY,
 }
 /// A specific application found on the system
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Default)]
 pub struct Application {
     /// Name of the application as stated in the desktop file or the name of the executable if
     /// Application Type is binary

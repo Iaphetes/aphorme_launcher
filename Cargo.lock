@@ -192,6 +192,7 @@ dependencies = [
  "jpeg-decoder",
  "linicon",
  "linicon-theme",
+ "once_cell",
  "rayon",
  "serde",
  "single-instance",

@@ -1,4 +1,4 @@
-#[cfg(feature = "ui-egui")]
+#[cfg(feature = "egui-ui")]
 pub mod egui_ui {
     use std::collections::HashMap;
 
