@@ -2,9 +2,25 @@ use confy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Default, Debug)]
+pub enum GuiFramework {
+    #[default]
+    EGUI,
+    ICED,
+}
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub gui_cfg: GuiCFG,
     pub app_cfg: Option<AppCFG>,
+    pub ui_framework: Option<GuiFramework>,
+}
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            gui_cfg: GuiCFG::default(),
+            app_cfg: None,
+            ui_framework: Some(GuiFramework::EGUI),
+        }
+    }
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuiCFG {

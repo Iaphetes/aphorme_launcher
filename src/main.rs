@@ -2,9 +2,13 @@
 #![feature(map_try_insert)]
 mod apps;
 mod config;
+#[cfg(feature = "ui-egui")]
 mod egui_ui;
 use crate::apps::ApplicationManager;
 use crate::config::{load_config, Config};
+#[cfg(feature = "ui-egui")]
+use crate::egui_ui::egui_ui::launch_egui_ui;
+use config::GuiFramework;
 use single_instance::SingleInstance;
 fn main() {
     let instance = SingleInstance::new("Aphorme").unwrap();
@@ -12,10 +16,20 @@ fn main() {
         let cfg: Config = load_config(None);
         let application_manager: ApplicationManager =
             ApplicationManager::new(cfg.app_cfg.unwrap_or_default(), cfg.gui_cfg.icon);
-        match egui_ui::launch_egui_ui(cfg.gui_cfg, application_manager) {
-            Ok(()) => {}
-            Err(error) => println!("{error:?}"),
-        };
+        let gui_framework: GuiFramework = cfg.ui_framework.unwrap_or_default();
+        match gui_framework {
+            GuiFramework::EGUI => {
+                #[cfg(feature = "ui-egui")]
+                match launch_egui_ui(cfg.gui_cfg, application_manager) {
+                    Ok(()) => {}
+                    Err(error) => println!("{error:?}"),
+                };
+                #[cfg(not(feature = "ui-egui"))]
+                panic!("Trying to use egui without \"ui-egui\"-feature activated");
+            }
+
+            GuiFramework::ICED => {}
+        }
     } else {
         println!("another instance is already running");
     }
