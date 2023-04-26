@@ -56,9 +56,8 @@ impl ApplicationManager {
                 "{} = {} : {:?}",
                 search_str, &application.name, search_match
             );
-            match search_match {
-                Some(score) => self.matches.push((application.clone(), score)),
-                None => {}
+            if let Some(score) = search_match {
+                self.matches.push((application.clone(), score));
             }
         }
         self.matches.sort_by(|a, b| b.1.cmp(&a.1));
@@ -172,7 +171,7 @@ pub fn collect_applications() -> Vec<Application> {
             Ok(files) => {
                 let path_applications: Vec<Option<Application>> = files
                     .collect::<Vec<Result<fs::DirEntry, std::io::Error>>>()
-                    .par_iter()
+                    .iter()
                     .map(|file_res| {
                         match file_res {
                             Ok(file) => {

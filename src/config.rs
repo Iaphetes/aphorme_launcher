@@ -1,11 +1,19 @@
 use confy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum GuiFramework {
-    #[default]
     EGUI,
     ICED,
+}
+impl Default for GuiFramework {
+    fn default() -> Self {
+        if cfg!(feature = "iced-ui") {
+            Self::ICED
+        } else {
+            Self::EGUI
+        }
+    }
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {

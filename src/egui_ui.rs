@@ -1,6 +1,7 @@
 #[cfg(feature = "egui-ui")]
 pub mod egui_ui {
     use std::collections::HashMap;
+    use std::path::PathBuf;
 
     use crate::apps::{Application, ApplicationManager};
     use crate::config::GuiCFG;
@@ -19,6 +20,7 @@ pub mod egui_ui {
             decorated: false,
             centered: true,
             resizable: false,
+            // transparent: true,
             // fullscreen: true,
             ..Default::default()
         };
@@ -82,56 +84,44 @@ pub mod egui_ui {
             match self.icon_ids.get(&application.name) {
                 Some(handle) => *handle,
                 None => {
-                    match &application.icon_path {
-                        Some(icon_path) => match icon_path.extension() {
-                            Some(ext) => match ext.to_str() {
-                                Some("png") | Some("jpg") | Some("jpeg") | Some("svg") => {
-                                    match std::fs::read(icon_path) {
-                                        Ok(data) => {
-                                            let image_res: Result<RetainedImage, String>;
-                                            if icon_path.to_string_lossy().ends_with("svg") {
-                                                image_res = egui_extras::image::RetainedImage::from_svg_bytes(&application.name, data.as_slice());
-                                            } else {
-                                                image_res = egui_extras::image::RetainedImage::from_image_bytes(&application.name, data.as_slice());
-                                            }
-                                            match image_res {
-                                                Ok(image) => {
-                                                    let id: TextureId = image.texture_id(&ctx);
-                                                    let _ = self.icon_ids.try_insert(
-                                                        application.name.clone(),
-                                                        Some(id.clone()),
-                                                    );
-                                                    self.icons.push(image);
+                    let icon_path: &PathBuf = &application.icon_path.clone()?;
+                    let ext: &str = icon_path.extension()?.to_str()?;
 
-                                                    Some(id)
-                                                }
-                                                Err(error) => {
-                                                    println!("Error while reading icon {}", error);
-                                                    None
-                                                }
-                                            }
-                                        }
-                                        Err(error) => {
-                                            println!("Error while parsing svg file {:?}", error);
-                                            None
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    println!("Unknown file extension {:?}", ext);
-                                    None
-                                }
-                            },
-                            None => None,
-                        },
-                        None => None,
-                    }
+                    let data: Vec<u8> = std::fs::read(icon_path).ok()?;
+                    let image_res: Option<RetainedImage> = match ext {
+                        "png" | "jpg" | "jpeg" => {
+                            egui_extras::image::RetainedImage::from_image_bytes(
+                                &application.name,
+                                data.as_slice(),
+                            )
+                            .ok()
+                        }
+                        "svg" => egui_extras::image::RetainedImage::from_svg_bytes(
+                            &application.name,
+                            data.as_slice(),
+                        )
+                        .ok(),
+                        _ => {
+                            println!("Unknown file extension {:?}", ext);
+                            None
+                        }
+                    };
+                    let image: RetainedImage = image_res?;
+                    let id: TextureId = image.texture_id(&ctx);
+                    let _ = self
+                        .icon_ids
+                        .try_insert(application.name.clone(), Some(id.clone()));
+                    self.icons.push(image);
+                    return Some(id);
                 }
             }
         }
     }
 
     impl eframe::App for EguiUI {
+        fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+            egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
+        }
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
             self.scroll(&ctx);
             let execute: bool = ctx.input(|i| i.key_pressed(Key::Enter));
@@ -209,5 +199,41 @@ pub mod egui_ui {
             });
             ctx.request_repaint();
         }
+    }
+    fn custom_window_frame(
+        ctx: &egui::Context,
+        frame: &mut eframe::Frame,
+        add_contents: impl FnOnce(&mut egui::Ui),
+    ) {
+        use egui::*;
+
+        let panel_frame = egui::Frame {
+            fill: ctx.style().visuals.window_fill(),
+            rounding: 10.0.into(),
+            stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
+            outer_margin: 0.5.into(), // so the stroke is within the bounds
+            ..Default::default()
+        };
+
+        CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
+            let app_rect = ui.max_rect();
+
+            let title_bar_height = 32.0;
+            let title_bar_rect = {
+                let mut rect = app_rect;
+                rect.max.y = rect.min.y + title_bar_height;
+                rect
+            };
+
+            // Add the contents:
+            let content_rect = {
+                let mut rect = app_rect;
+                rect.min.y = title_bar_rect.max.y;
+                rect
+            }
+            .shrink(4.0);
+            let mut content_ui = ui.child_ui(content_rect, *ui.layout());
+            add_contents(&mut content_ui);
+        });
     }
 }

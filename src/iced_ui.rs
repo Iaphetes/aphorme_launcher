@@ -5,7 +5,7 @@ pub mod iced_ui {
     use crate::config::GuiCFG;
     use iced::widget::scrollable::{Properties, Scrollbar, Scroller};
     use iced::widget::{column, container, scrollable, text, Column};
-    use iced::{executor, theme, Alignment, Color};
+    use iced::{executor, theme, window, Alignment, Color};
     use iced::{Application, Command, Element, Length, Settings, Theme};
     use once_cell::sync::Lazy;
 
@@ -21,6 +21,13 @@ pub mod iced_ui {
             flags: State {
                 gui_cfg,
                 application_manager,
+            },
+            window: window::Settings {
+                size: (512, 512),
+                decorations: false,
+                always_on_top: true,
+                resizable: false,
+                ..Default::default()
             },
             ..Settings::default()
         });

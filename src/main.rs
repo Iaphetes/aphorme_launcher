@@ -18,7 +18,8 @@ fn main() {
         let cfg: Config = load_config(None);
         let application_manager: ApplicationManager =
             ApplicationManager::new(cfg.app_cfg.unwrap_or_default(), cfg.gui_cfg.icon);
-        let gui_framework: GuiFramework = GuiFramework::ICED; //cfg.ui_framework.unwrap_or_default();
+        let gui_framework: GuiFramework = cfg.ui_framework.unwrap_or_default();
+        // let gui_framework: GuiFramework = GuiFramework::EGUI; //cfg.ui_framework.unwrap_or_default();
         match gui_framework {
             GuiFramework::EGUI => {
                 #[cfg(feature = "egui-ui")]

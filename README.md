@@ -38,3 +38,9 @@ If you want to change that see the Configuration part in this README
 ## 0.1.5
 ### Fixes
 - Improved startup time by loading icons in batches of 5 at every repaint of the UI
+## 0.1.6
+### Fixes
+- Now checks if it is the only instance and if not, it will close down
+- Removed parallel iterator from loading, since the overhead was too great
+- Made code more readable (Thanks AnyTimeTraveler)
+- Started work on iced (not yet usable)
