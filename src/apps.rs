@@ -3,7 +3,6 @@ use crate::config::AppCFG;
 use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
-use rayon::prelude::*;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;

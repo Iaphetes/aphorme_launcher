@@ -27,11 +27,12 @@ fn main() {
                     Ok(()) => {}
                     Err(error) => println!("{error:?}"),
                 };
-                #[cfg(not(feature = "ui-egui"))]
+                #[cfg(not(feature = "egui-ui"))]
                 panic!("Trying to use egui without \"ui-egui\"-feature activated");
             }
 
             GuiFramework::ICED => {
+                #[cfg(feature = "iced-ui")]
                 launch_iced_ui(cfg.gui_cfg, application_manager);
             }
         }

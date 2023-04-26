@@ -8,6 +8,9 @@ pub enum GuiFramework {
 }
 impl Default for GuiFramework {
     fn default() -> Self {
+        if cfg!(feature = "egui-ui") {
+            return Self::EGUI;
+        }
         if cfg!(feature = "iced-ui") {
             Self::ICED
         } else {
