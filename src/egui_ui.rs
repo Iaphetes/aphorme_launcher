@@ -126,10 +126,11 @@ pub mod egui_ui {
             self.scroll(&ctx);
             let execute: bool = ctx.input(|i| i.key_pressed(Key::Enter));
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
-                std::process::exit(0);
+                _frame.close();
             }
             if execute {
                 self.application_manager.execute_first_match(self.selected);
+                _frame.close();
             }
             if self.gui_cfg.icon {
                 self.application_manager.load_next_icons(5);

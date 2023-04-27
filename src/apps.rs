@@ -3,6 +3,7 @@ use crate::config::AppCFG;
 use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
+use single_instance::SingleInstance;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -18,15 +19,15 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
-#[derive(Default)]
 pub struct ApplicationManager {
     applications: Vec<Application>,
     pub matches: Vec<(Application, i64)>,
     icon_theme: String,
     loaded_icons: usize,
+    instance: Option<SingleInstance>,
 }
 impl ApplicationManager {
-    pub fn new(_config: AppCFG, icon: bool) -> ApplicationManager {
+    pub fn new(_config: AppCFG, icon: bool, instance: SingleInstance) -> ApplicationManager {
         let mut applications: Vec<Application> = collect_applications();
         applications.sort();
         ApplicationManager {
@@ -43,6 +44,7 @@ impl ApplicationManager {
                 false => String::new(),
             },
             loaded_icons: 0,
+            instance: Some(instance),
         }
     }
     /// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
@@ -61,8 +63,9 @@ impl ApplicationManager {
         }
         self.matches.sort_by(|a, b| b.1.cmp(&a.1));
     }
-    pub fn execute_first_match(&self, selected: usize) {
-        self.matches[selected].0.run(true);
+    pub fn execute_first_match(&mut self, selected: usize) {
+        self.instance = None;
+        self.matches[selected].0.run(false);
     }
     pub fn load_next_icons(&mut self, amount: usize) -> bool {
         let mut is_done: bool = false;
@@ -153,9 +156,7 @@ impl Application {
             .args(args)
             .spawn()
             .unwrap();
-        if quit {
-            std::process::exit(0);
-        }
+        if quit {}
     }
 }
 // fn search_icons(name: &str) {}

@@ -44,3 +44,10 @@ If you want to change that see the Configuration part in this README
 - Removed parallel iterator from loading, since the overhead was too great
 - Made code more readable (Thanks AnyTimeTraveler)
 - Started work on iced (not yet usable)
+## 0.1.7
+### Fixes
+- Removed unused dependencies
+- Fixed bugs where a combination of features could lead to crashes
+## 0.1.8
+### Fixes
+- Fixed bug where the socket opened by a library would not be closed after running a program
