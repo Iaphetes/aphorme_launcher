@@ -3,9 +3,9 @@ pub mod iced_ui {
 
     use crate::apps::ApplicationManager;
     use crate::config::GuiCFG;
-    use iced::widget::scrollable::{Properties, Scrollbar, Scroller};
-    use iced::widget::{column, container, scrollable, text, Column};
-    use iced::{executor, theme, window, Alignment, Color};
+    use iced::widget::scrollable::{Properties, RelativeOffset, Scrollbar, Scroller};
+    use iced::widget::{button, column, container, scrollable, text, Column};
+    use iced::{executor, theme, window, Alignment, Background, Color};
     use iced::{Application, Command, Element, Length, Settings, Theme};
     use once_cell::sync::Lazy;
 
@@ -77,9 +77,7 @@ pub mod iced_ui {
         fn view(&self) -> Element<Message> {
             let mut column = Column::new();
             for application in &self.application_manager.matches {
-                column = column.push(container(text(application.0.name.clone())).style(
-                    theme::Container::Custom(Box::new(ContainerNotSelectedStyle)),
-                ));
+                column = column.push(button(text(application.0.name.clone())));
             }
             let scrollable_content: Element<Message> = Element::from(
                 scrollable(
@@ -153,6 +151,7 @@ pub mod iced_ui {
             }
         }
     }
+    // Styles
     struct ContainerSelectedStyle;
     impl container::StyleSheet for ContainerSelectedStyle {
         type Style = Theme;
@@ -165,12 +164,32 @@ pub mod iced_ui {
         }
     }
     struct ContainerNotSelectedStyle;
-    impl container::StyleSheet for ContainerNotSelectedStyle {
+    impl button::StyleSheet for ContainerNotSelectedStyle {
         type Style = Theme;
-        fn appearance(&self, style: &Self::Style) -> container::Appearance {
-            container::Appearance {
-                text_color: Some(style.extended_palette().background.strong.text),
-                background: Some(style.extended_palette().background.base.color.into()),
+        fn active(&self, style: &Self::Style) -> button::Appearance {
+            button::Appearance {
+                // text_color: Some(style.extended_palette().background.strong.text),
+                background: Some(Background::Color(Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 1.0,
+                })),
+                // style.extended_palette().background.base.color.into()),
+                ..Default::default()
+            }
+        }
+
+        fn hovered(&self, style: &Self::Style) -> button::Appearance {
+            button::Appearance {
+                // text_color: Some(style.extended_palette().background.strong.text),
+                background: Some(Background::Color(Color {
+                    r: 0.0,
+                    g: 1.0,
+                    b: 0.0,
+                    a: 1.0,
+                })),
+                // style.extended_palette().background.base.color.into()),
                 ..Default::default()
             }
         }

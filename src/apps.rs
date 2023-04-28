@@ -19,6 +19,7 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
+#[derive(Default)]
 pub struct ApplicationManager {
     applications: Vec<Application>,
     pub matches: Vec<(Application, i64)>,

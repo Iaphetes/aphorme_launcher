@@ -179,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "aphorme"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "confy",
  "dirs 5.0.0",
