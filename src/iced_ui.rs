@@ -3,9 +3,13 @@ pub mod iced_ui {
 
     use crate::apps::ApplicationManager;
     use crate::config::GuiCFG;
+    use iced::widget::pane_grid::Direction;
     use iced::widget::scrollable::{Properties, RelativeOffset, Scrollbar, Scroller};
     use iced::widget::{button, column, container, scrollable, text, Column};
-    use iced::{executor, theme, window, Alignment, Background, Color};
+    use iced::{
+        event, executor, keyboard, subscription, theme, window, Alignment, Background, Color,
+        Event, Subscription,
+    };
     use iced::{Application, Command, Element, Length, Settings, Theme};
     use once_cell::sync::Lazy;
 
@@ -36,13 +40,14 @@ pub mod iced_ui {
         current_scroll_offset: scrollable::RelativeOffset,
         gui_cfg: GuiCFG,
         application_manager: ApplicationManager,
+        currently_selected: usize,
     }
 
     #[derive(Debug, Clone)]
     pub enum Message {
         Scrolled(scrollable::RelativeOffset),
+        Scroll(scrollable::RelativeOffset),
     }
-
     impl Application for ScrollableDemo {
         type Executor = executor::Default;
         type Message = Message;
@@ -55,6 +60,7 @@ pub mod iced_ui {
                     current_scroll_offset: scrollable::RelativeOffset::START,
                     gui_cfg: _flags.gui_cfg,
                     application_manager: _flags.application_manager,
+                    currently_selected: 0,
                 },
                 Command::none(),
             )
@@ -67,18 +73,66 @@ pub mod iced_ui {
         fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::Scrolled(offset) => {
+                    println!("{:#?}", offset);
                     self.current_scroll_offset = offset;
 
+                    // scrollable::snap_to(SCROLLABLE_ID.clone(), self.current_scroll_offset);
                     Command::none()
                 }
+                Message::Scroll(offset) => {
+                    // self.current_scroll_offset.x += offset.x;
+                    let move_amount: f32 = 1.0 / self.application_manager.matches.len() as f32;
+                    self.current_scroll_offset.y += offset.y * move_amount;
+                    if self.current_scroll_offset.y > 1.0 {
+                        self.current_scroll_offset.y = 1.0
+                    } else if self.current_scroll_offset.y < 0.0 {
+                        self.current_scroll_offset.y = 0.0
+                    }
+                    scrollable::snap_to(SCROLLABLE_ID.clone(), self.current_scroll_offset)
+                }
             }
+        }
+        fn subscription(&self) -> Subscription<Message> {
+            subscription::events_with(|event, status| {
+                if let event::Status::Captured = status {
+                    return None;
+                }
+
+                if let Event::Keyboard(keyboard_event) = event {
+                    if let keyboard::Event::KeyPressed {
+                        key_code,
+                        modifiers,
+                    } = keyboard_event
+                    {
+                        match key_code {
+                            keyboard::KeyCode::Down => {
+                                return Some(Message::Scroll(RelativeOffset {
+                                    x: f32::NAN,
+                                    y: 1.0,
+                                }));
+                            }
+                            keyboard::KeyCode::Up => {
+                                return Some(Message::Scroll(RelativeOffset {
+                                    x: f32::NAN,
+                                    y: -1.0,
+                                }));
+                            }
+                            _ => {
+                                return None;
+                            }
+                        }
+                    }
+                }
+                None
+            })
         }
 
         fn view(&self) -> Element<Message> {
             let mut column = Column::new();
             for application in &self.application_manager.matches {
-                column = column.push(button(text(application.0.name.clone())));
+                column = column.push(button(text(application.0.name.clone())).width(Length::Fill));
             }
+
             let scrollable_content: Element<Message> = Element::from(
                 scrollable(
                     column

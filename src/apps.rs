@@ -1,5 +1,4 @@
 use crate::config::AppCFG;
-// use eframe::epaint::ahash::HashMap;
 use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;

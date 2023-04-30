@@ -67,7 +67,7 @@ pub mod egui_ui {
             let down: bool =
                 ctx.input(|i| i.key_pressed(Key::ArrowDown) || i.scroll_delta.y < -1.0);
             let up: bool = ctx.input(|i| i.key_pressed(Key::ArrowUp) || i.scroll_delta.y > 1.0);
-            if down && self.selected < 100 {
+            if down && self.selected < self.application_manager.matches.len() - 1 {
                 self.selected += 1;
             }
             if up && self.selected > 0 {
@@ -108,9 +108,10 @@ pub mod egui_ui {
                     };
                     let image: RetainedImage = image_res?;
                     let id: TextureId = image.texture_id(&ctx);
-                    let _ = self
-                        .icon_ids
-                        .try_insert(application.name.clone(), Some(id.clone()));
+                    if !self.icon_ids.contains_key(&application.name) {
+                        self.icon_ids
+                            .insert(application.name.clone(), Some(id.clone()));
+                    }
                     self.icons.push(image);
                     return Some(id);
                 }
@@ -201,40 +202,40 @@ pub mod egui_ui {
             ctx.request_repaint();
         }
     }
-    fn custom_window_frame(
-        ctx: &egui::Context,
-        frame: &mut eframe::Frame,
-        add_contents: impl FnOnce(&mut egui::Ui),
-    ) {
-        use egui::*;
+    // fn custom_window_frame(
+    //     ctx: &egui::Context,
+    //     _frame: &mut eframe::Frame,
+    //     add_contents: impl FnOnce(&mut egui::Ui),
+    // ) {
+    //     use egui::*;
 
-        let panel_frame = egui::Frame {
-            fill: ctx.style().visuals.window_fill(),
-            rounding: 10.0.into(),
-            stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
-            outer_margin: 0.5.into(), // so the stroke is within the bounds
-            ..Default::default()
-        };
+    //     let panel_frame = egui::Frame {
+    //         fill: ctx.style().visuals.window_fill(),
+    //         rounding: 10.0.into(),
+    //         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
+    //         outer_margin: 0.5.into(), // so the stroke is within the bounds
+    //         ..Default::default()
+    //     };
 
-        CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
-            let app_rect = ui.max_rect();
+    //     CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
+    //         let app_rect = ui.max_rect();
 
-            let title_bar_height = 32.0;
-            let title_bar_rect = {
-                let mut rect = app_rect;
-                rect.max.y = rect.min.y + title_bar_height;
-                rect
-            };
+    //         let title_bar_height = 32.0;
+    //         let title_bar_rect = {
+    //             let mut rect = app_rect;
+    //             rect.max.y = rect.min.y + title_bar_height;
+    //             rect
+    //         };
 
-            // Add the contents:
-            let content_rect = {
-                let mut rect = app_rect;
-                rect.min.y = title_bar_rect.max.y;
-                rect
-            }
-            .shrink(4.0);
-            let mut content_ui = ui.child_ui(content_rect, *ui.layout());
-            add_contents(&mut content_ui);
-        });
-    }
+    //         // Add the contents:
+    //         let content_rect = {
+    //             let mut rect = app_rect;
+    //             rect.min.y = title_bar_rect.max.y;
+    //             rect
+    //         }
+    //         .shrink(4.0);
+    //         let mut content_ui = ui.child_ui(content_rect, *ui.layout());
+    //         add_contents(&mut content_ui);
+    //     });
+    // }
 }

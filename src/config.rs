@@ -1,12 +1,12 @@
 use confy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-#[derive(Serialize, Deserialize, Debug)]
-pub enum GuiFramework {
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum UIFramework {
     EGUI,
     ICED,
 }
-impl Default for GuiFramework {
+impl Default for UIFramework {
     fn default() -> Self {
         if cfg!(feature = "egui-ui") {
             return Self::EGUI;
@@ -18,35 +18,43 @@ impl Default for GuiFramework {
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Config {
     pub gui_cfg: GuiCFG,
     pub app_cfg: Option<AppCFG>,
-    pub ui_framework: Option<GuiFramework>,
 }
 impl Default for Config {
     fn default() -> Self {
         Self {
             gui_cfg: GuiCFG::default(),
             app_cfg: None,
-            ui_framework: Some(GuiFramework::EGUI),
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct GuiCFG {
     pub icon: bool,
+    pub ui_framework: Option<UIFramework>,
 }
 impl Default for GuiCFG {
     fn default() -> Self {
-        GuiCFG { icon: true }
+        GuiCFG {
+            icon: true,
+            ui_framework: None,
+        }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
 pub struct AppCFG {}
 pub fn load_config(path: Option<PathBuf>) -> Config {
     match path {
         Some(p) => confy::load_path(p).expect("Configuration could not be loaded"),
-        None => confy::load("aphorme", Some("config")).expect("Configuration could not be loaded"),
+        None => confy::load("aphorme", Some("config"))
+            .ok()
+            .unwrap_or_else(|| {
+                let config: Config = Config::default();
+                let _ = confy::store("aphorme", Some("config"), Config::default());
+                config
+            }),
     }
 }

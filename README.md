@@ -1,4 +1,3 @@
-
 # A Linux Program Launcher
 This is a Program Launcher written in Rust.
 For the moment it uses multiple different UI toolkits, namely:
@@ -20,6 +19,17 @@ Configuration is now found in $HOME/.config/aphorme/config.toml
 Options for the gui.
 ### icons: boolean
 Enable or disable icon loading.
+### GuiFramework
+Which GuiFramework to used. At the moment EGUI and ICED.
+Note that at the moment ICED is not compiled into the launcher by default. To do so compile with the feature `iced-ui`
+## app_cfg
+App spanning options. Does not yet contain anything
+## Example Config
+```toml
+[gui_cfg]
+icon = true
+ui_framework = 'EGUI'
+```
 
 # Known issues
 ## Scrolling is somewhat weird (and the scroll bar is visible) in egui
@@ -51,3 +61,8 @@ If you want to change that see the Configuration part in this README
 ## 0.1.8
 ### Fixes
 - Fixed bug where the socket opened by a library would not be closed after running a program
+## 0.1.9
+### Fixes
+- Fixed bug where one could not scroll past the 100th item in the search (silly me for leaving that hardcoded from my tests...)
+- Made compilation not dependant on nightly toolchain
+- Fixed config bug, where a non-existent config led to a crash. Now the config will always be created in $HOME/aphorme/config.toml

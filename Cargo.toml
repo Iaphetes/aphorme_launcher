@@ -1,6 +1,6 @@
 [package]
 name = "aphorme"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "A program launcher for X11 and Wayland"
 license = "GPL-3.0"
@@ -25,6 +25,6 @@ iced = {version = "0.9", optional = true}
 once_cell = "1.16.0"
 
 [features]
-default = ["egui-ui", "iced-ui"]
+default = ["egui-ui"]
 egui-ui= ["dep:eframe", "dep:egui_extras"]
 iced-ui = ["dep:iced"]
