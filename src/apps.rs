@@ -3,9 +3,9 @@ use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
 use single_instance::SingleInstance;
-use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::{env, fs};
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -27,8 +27,27 @@ pub struct ApplicationManager {
     instance: Option<SingleInstance>,
 }
 impl ApplicationManager {
-    pub fn new(_config: AppCFG, icon: bool, instance: SingleInstance) -> ApplicationManager {
-        let mut applications: Vec<Application> = collect_applications();
+    pub fn new(config: AppCFG, icon: bool, instance: SingleInstance) -> ApplicationManager {
+        let mut paths: Vec<String> = config.paths.clone();
+        if config.use_default_paths.is_none() || config.use_default_paths == Some(true) {
+            for path in Vec::from(APPLICATION_PATHS)
+                .into_iter()
+                .map(|p| p.to_owned())
+            {
+                paths.push(path);
+            }
+        }
+
+        match env::var_os("HOME") {
+            Some(home_dir) => {
+                paths = paths
+                    .into_iter()
+                    .map(|p| p.replace("$HOME", &home_dir.to_string_lossy()))
+                    .collect()
+            }
+            None => println!("Impossible to get your home dir!"),
+        };
+        let mut applications: Vec<Application> = collect_applications(&paths);
         applications.sort();
         ApplicationManager {
             applications: applications.clone(),
@@ -161,10 +180,11 @@ impl Application {
 }
 // fn search_icons(name: &str) {}
 /// Find applications in the APPLICATION_PATHS and return them as a `Vec<Application>`
-pub fn collect_applications() -> Vec<Application> {
+pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
+    println!("{:#?}", paths);
     let mut applications: Vec<Application> = Vec::new();
 
-    for path in APPLICATION_PATHS {
+    for path in paths {
         println!("{path:?}");
 
         match fs::read_dir(path) {

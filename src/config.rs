@@ -18,7 +18,7 @@ impl Default for UIFramework {
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub gui_cfg: GuiCFG,
     pub app_cfg: Option<AppCFG>,
@@ -31,7 +31,7 @@ impl Default for Config {
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuiCFG {
     pub icon: bool,
     pub ui_framework: Option<UIFramework>,
@@ -44,8 +44,19 @@ impl Default for GuiCFG {
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
-pub struct AppCFG {}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AppCFG {
+    pub paths: Vec<String>,
+    pub use_default_paths: Option<bool>,
+}
+impl Default for AppCFG {
+    fn default() -> Self {
+        AppCFG {
+            paths: Vec::new(),
+            use_default_paths: Some(true),
+        }
+    }
+}
 pub fn load_config(path: Option<PathBuf>) -> Config {
     match path {
         Some(p) => confy::load_path(p).expect("Configuration could not be loaded"),

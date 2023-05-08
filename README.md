@@ -23,12 +23,28 @@ Enable or disable icon loading.
 Which GuiFramework to used. At the moment EGUI and ICED.
 Note that at the moment ICED is not compiled into the launcher by default. To do so compile with the feature `iced-ui`
 ## app_cfg
-App spanning options. Does not yet contain anything
+App spanning options.
+### paths
+List of additional paths to search. Home directory can only be denoted by using `$HOME`
+Defaults to an empty list.
+### use_default_paths
+Search default paths. If paths is defined appends them to the default.
+Defaults to `true`
+
+Default paths are
+```toml
+  "/usr/share/applications",
+  "/usr/local/share/applications",
+  "$HOME/.local/share/applications",
+  "/var/lib/flatpak/exports/share/applications"
+```
 ## Example Config
 ```toml
 [gui_cfg]
 icon = true
 ui_framework = 'EGUI'
+[app_cfg]
+paths = ["$HOME/Desktop"]
 ```
 
 # Known issues
@@ -66,3 +82,8 @@ If you want to change that see the Configuration part in this README
 - Fixed bug where one could not scroll past the 100th item in the search (silly me for leaving that hardcoded from my tests...)
 - Made compilation not dependant on nightly toolchain
 - Fixed config bug, where a non-existent config led to a crash. Now the config will always be created in $HOME/aphorme/config.toml
+## 0.1.10
+### Features added
+- You can now add additional paths to search or replace them entirely. See the `Config` section for more on this.
+### Fixes
+- Now properly resolvec `$HOME` to the home directory
