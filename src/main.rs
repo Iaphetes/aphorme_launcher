@@ -39,4 +39,5 @@ fn main() {
     } else {
         println!("another instance is already running");
     }
+    println!("Signing off");
 }

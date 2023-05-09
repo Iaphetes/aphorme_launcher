@@ -2,8 +2,12 @@ use crate::config::AppCFG;
 use freedesktop_entry_parser::{parse_entry, Entry};
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
+use serde::{Deserialize, Serialize};
 use single_instance::SingleInstance;
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
@@ -18,6 +22,10 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
+const LOCAL_DIR: &str = "$HOME/.local/share/aphorme";
+#[derive(Default, Serialize, Deserialize)]
+struct PreferredMap(HashMap<Application, i64>);
+
 #[derive(Default)]
 pub struct ApplicationManager {
     applications: Vec<Application>,
@@ -25,6 +33,7 @@ pub struct ApplicationManager {
     icon_theme: String,
     loaded_icons: usize,
     instance: Option<SingleInstance>,
+    preferred_applications: PreferredMap,
 }
 impl ApplicationManager {
     pub fn new(config: AppCFG, icon: bool, instance: SingleInstance) -> ApplicationManager {
@@ -38,17 +47,30 @@ impl ApplicationManager {
             }
         }
 
-        match env::var_os("HOME") {
+        let home_dir_opt = env::var_os("HOME");
+        let mut preferred_map: PreferredMap = PreferredMap::default();
+        match home_dir_opt {
             Some(home_dir) => {
                 paths = paths
                     .into_iter()
                     .map(|p| p.replace("$HOME", &home_dir.to_string_lossy()))
-                    .collect()
+                    .collect();
+                let local_path: String = LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
+                if Path::new(&local_path).exists() {
+                    let preference_path: String = local_path + "/preferred_apps.json";
+                    if let Some(preference_file_content) = fs::read_to_string(&preference_path).ok()
+                    {
+                        preferred_map = serde_json::from_str(&preference_file_content)
+                            .ok()
+                            .unwrap_or_default();
+                    };
+                }
             }
             None => println!("Impossible to get your home dir!"),
         };
         let mut applications: Vec<Application> = collect_applications(&paths);
         applications.sort();
+
         ApplicationManager {
             applications: applications.clone(),
             matches: applications
@@ -64,6 +86,7 @@ impl ApplicationManager {
             },
             loaded_icons: 0,
             instance: Some(instance),
+            preferred_applications: preferred_map,
         }
     }
     /// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
@@ -84,7 +107,28 @@ impl ApplicationManager {
     }
     pub fn execute_first_match(&mut self, selected: usize) {
         self.instance = None;
-        self.matches[selected].0.run(false);
+        let selected_match: &Application = &self.matches[selected].0;
+
+        let home_dir_opt = env::var_os("HOME");
+        match home_dir_opt {
+            Some(home_dir) => {
+                let local_path: String = LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
+                if Path::new(&local_path).exists() {
+                } else {
+                    std::fs::create_dir_all(&local_path);
+                }
+                let preference_path: String = local_path + "/preferred_apps.json";
+                if let Ok(mut fileptr) = File::create(&preference_path) {
+                    fileptr.write_all(
+                        &serde_json::to_string(&self.preferred_applications)
+                            .unwrap_or_default()
+                            .as_bytes(),
+                    );
+                }
+            }
+            None => println!("Impossible to get your home dir!"),
+        };
+        selected_match.run(false);
     }
     pub fn load_next_icons(&mut self, amount: usize) -> bool {
         let mut is_done: bool = false;
@@ -94,9 +138,7 @@ impl ApplicationManager {
             } else {
                 self.loaded_icons + amount
             };
-            // println!("Last {}", last);
             for i in self.loaded_icons..last {
-                // println!("i {}", i);
                 self.applications[i].icon_path = match &self.applications[i].icon_name {
                     Some(path) => match lookup_icon(path.to_owned())
                         .from_theme(&self.icon_theme)
@@ -109,7 +151,6 @@ impl ApplicationManager {
                         },
                         None => None,
                     },
-
                     None => None,
                 };
 
@@ -130,14 +171,14 @@ impl ApplicationManager {
 }
 
 /// The type of application. Either a binary (not yet supported) or a Desktop file
-#[derive(Clone, Eq, PartialEq, Default)]
+#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
 enum ApplicationType {
     #[default]
     DESKTOPFILE,
     // BINARY,
 }
 /// A specific application found on the system
-#[derive(Clone, Eq, PartialEq, Default)]
+#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
 pub struct Application {
     /// Name of the application as stated in the desktop file or the name of the executable if
     /// Application Type is binary
