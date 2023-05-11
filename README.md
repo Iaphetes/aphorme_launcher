@@ -95,3 +95,6 @@ If you want to change that see the Configuration part in this README
 ## 0.1.11
 ### Features added
 - Custom selection of inputs now possible. Will echo the selected option (similar to dmenu)
+## 0.1.12
+### Fixes
+- For some reason sway seems to pass whitespace to a launched program using exec. This lead the list to be empty

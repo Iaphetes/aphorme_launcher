@@ -63,7 +63,9 @@ fn fetch_custom_commands(custom_inputs: &mut Vec<String>) {
     if let Ok(key) = stdin_channel.try_recv() {
         for line in key.split('\n') {
             let command: String = line.to_string().replace('\n', "");
-            custom_inputs.push(command);
+            if !command.is_empty() {
+                custom_inputs.push(command);
+            }
         }
     }
 }
