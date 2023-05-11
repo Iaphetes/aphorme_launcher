@@ -10,6 +10,7 @@ pub mod egui_ui {
         epaint::{Color32, TextureId, Vec2},
     };
     use egui_extras::RetainedImage;
+    use log::debug;
     pub fn launch_egui_ui(
         gui_cfg: GuiCFG,
         application_manager: ApplicationManager,
@@ -20,8 +21,6 @@ pub mod egui_ui {
             decorated: false,
             centered: true,
             resizable: false,
-            // transparent: true,
-            // fullscreen: true,
             ..Default::default()
         };
 
@@ -102,7 +101,7 @@ pub mod egui_ui {
                         )
                         .ok(),
                         _ => {
-                            println!("Unknown file extension {:?}", ext);
+                            debug!("Unknown file extension {:?}", ext);
                             None
                         }
                     };

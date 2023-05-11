@@ -2,7 +2,12 @@
 This is a Program Launcher written in Rust.
 For the moment it uses multiple different UI toolkits, namely:
 - [x] egui 
-- [ ] iced
+- ~~ [ ] iced~~ While this seems to be a good toolkit, it (similarly to egui) is not designed for use in floating launchers or widgets.
+I will instead have a look at gtk in Rust and other toolkits. Any suggestions are always welcome.
+# Features
+- Searches for all desktop files in most of the common linux application paths
+  - Can be extended using the config file (See `Configuration->app_cfg->paths`)
+- Can be used for dmenu type selection of piped in applications
 # Why multiple UI toolkits?
 I started using egui for this, which is a great toolkit, but it has some limitations. So I thought I'd try some other toolkits. This I think is a reasonably simple UI, but with some quirks (like the keyboard scrolling) which I can use to compare ease of use and feature sets.
 # Why another program launcher?
@@ -84,6 +89,9 @@ If you want to change that see the Configuration part in this README
 - Fixed config bug, where a non-existent config led to a crash. Now the config will always be created in $HOME/aphorme/config.toml
 ## 0.1.10
 ### Features added
-- You can now add additional paths to search or replace them entirely. See the `Config` section for more on this.
+- You can now add additional paths to search or replace them entirely. See the `Configuration` section for more on this.
 ### Fixes
-- Now properly resolvec `$HOME` to the home directory
+- Now properly resolves `$HOME` to the home directory
+## 0.1.11
+### Features added
+- Custom selection of inputs now possible. Will echo the selected option (similar to dmenu)

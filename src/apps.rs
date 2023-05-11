@@ -1,19 +1,19 @@
 use crate::config::AppCFG;
 use freedesktop_entry_parser::{parse_entry, Entry};
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use linicon::lookup_icon;
 use linicon_theme::get_icon_theme;
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use single_instance::SingleInstance;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
-
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
-use std::cmp::Ordering;
 /// The paths where the desktop files and binaries are located. Will be exported to a config file
 /// and inserted in the defaults
 const APPLICATION_PATHS: [&str; 4] = [
@@ -36,7 +36,12 @@ pub struct ApplicationManager {
     preferred_applications: PreferredMap,
 }
 impl ApplicationManager {
-    pub fn new(config: AppCFG, icon: bool, instance: SingleInstance) -> ApplicationManager {
+    pub fn new(
+        config: AppCFG,
+        icon: bool,
+        instance: SingleInstance,
+        custom_fields: Vec<String>,
+    ) -> ApplicationManager {
         let mut paths: Vec<String> = config.paths.clone();
         if config.use_default_paths.is_none() || config.use_default_paths == Some(true) {
             for path in Vec::from(APPLICATION_PATHS)
@@ -66,10 +71,26 @@ impl ApplicationManager {
                     };
                 }
             }
-            None => println!("Impossible to get your home dir!"),
+            None => warn!("Impossible to get your home dir!"),
         };
-        let mut applications: Vec<Application> = collect_applications(&paths);
-        applications.sort();
+
+        let mut applications: Vec<Application>;
+        if custom_fields.is_empty() {
+            applications = collect_applications(&paths);
+            applications.sort();
+        } else {
+            applications = Vec::new();
+            for field in custom_fields {
+                // debug!("{}", field);
+                applications.push(Application {
+                    name: field.clone(),
+                    command: field,
+                    icon_path: None,
+                    icon_name: None,
+                    application_type: ApplicationType::STDOUT,
+                });
+            }
+        }
 
         ApplicationManager {
             applications: applications.clone(),
@@ -79,7 +100,7 @@ impl ApplicationManager {
                 .collect(),
             icon_theme: match icon {
                 true => get_icon_theme().unwrap_or_else(|| {
-                    println!("No icon theme found");
+                    warn!("No icon theme found");
                     "".to_string()
                 }),
                 false => String::new(),
@@ -95,7 +116,7 @@ impl ApplicationManager {
         self.matches.clear();
         for application in &self.applications {
             let search_match: Option<i64> = matcher.fuzzy_match(&application.name, search_str);
-            println!(
+            debug!(
                 "{} = {} : {:?}",
                 search_str, &application.name, search_match
             );
@@ -109,26 +130,32 @@ impl ApplicationManager {
         self.instance = None;
         let selected_match: &Application = &self.matches[selected].0;
 
-        let home_dir_opt = env::var_os("HOME");
-        match home_dir_opt {
-            Some(home_dir) => {
-                let local_path: String = LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
-                if Path::new(&local_path).exists() {
-                } else {
-                    std::fs::create_dir_all(&local_path);
-                }
-                let preference_path: String = local_path + "/preferred_apps.json";
-                if let Ok(mut fileptr) = File::create(&preference_path) {
-                    fileptr.write_all(
-                        &serde_json::to_string(&self.preferred_applications)
-                            .unwrap_or_default()
-                            .as_bytes(),
-                    );
-                }
+        match selected_match.application_type {
+            ApplicationType::DESKTOPFILE => {
+                let home_dir_opt = env::var_os("$HOME");
+                if let Some(home_dir) = home_dir_opt {
+                    let local_path: String =
+                        LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
+                    if Path::new(&local_path).exists() {
+                    } else {
+                        //If let err
+                        std::fs::create_dir_all(&local_path);
+                    }
+                    let preference_path: String = local_path + "/preferred_apps.json";
+                    if let Ok(mut fileptr) = File::create(&preference_path) {
+                        if let Err(err) = fileptr.write_all(
+                            &serde_json::to_string(&self.preferred_applications)
+                                .unwrap_or_default()
+                                .as_bytes(),
+                        ) {
+                            error!("{:?}", err);
+                        }
+                    }
+                };
+                selected_match.run(false);
             }
-            None => println!("Impossible to get your home dir!"),
-        };
-        selected_match.run(false);
+            ApplicationType::STDOUT => println!("{}", selected_match.command),
+        }
     }
     pub fn load_next_icons(&mut self, amount: usize) -> bool {
         let mut is_done: bool = false;
@@ -175,7 +202,7 @@ impl ApplicationManager {
 enum ApplicationType {
     #[default]
     DESKTOPFILE,
-    // BINARY,
+    STDOUT, // BINARY,
 }
 /// A specific application found on the system
 #[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
@@ -204,7 +231,6 @@ impl PartialOrd for Application {
 impl Application {
     /// Executes the program and exits if quit is true
     pub fn run(&self, quit: bool) {
-        // println!("command {:?}", self.command);
         let split_command: Vec<&str> = self.command.split(" ").collect();
         let mut args: Vec<&str> = Vec::new();
         for arg in split_command[1..].into_iter() {
@@ -222,12 +248,10 @@ impl Application {
 // fn search_icons(name: &str) {}
 /// Find applications in the APPLICATION_PATHS and return them as a `Vec<Application>`
 pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
-    println!("{:#?}", paths);
+    debug!("{:#?}", paths);
     let mut applications: Vec<Application> = Vec::new();
 
     for path in paths {
-        println!("{path:?}");
-
         match fs::read_dir(path) {
             Ok(files) => {
                 let path_applications: Vec<Option<Application>> = files
@@ -287,7 +311,7 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                                 }
                             }
                             Err(error) => {
-                                println!("Error encountered while reading file {:?}", error);
+                                error!("Error encountered while reading file {:?}", error);
                                 None
                             }
                         }
@@ -301,7 +325,7 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                 }
             }
             Err(error) => {
-                println!("Could not read {path:?} because of {error:?}")
+                error!("Could not read {path:?} because of {error:?}")
             }
         }
     }
