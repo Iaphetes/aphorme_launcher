@@ -63,9 +63,16 @@ pub mod egui_ui {
         /// Custom scrolling function using the arrow keys or the scroll delta of the mouse wheel.
         /// Always keeps the selected item on top
         fn scroll(&mut self, ctx: &egui::Context) {
-            let down: bool =
-                ctx.input(|i| i.key_pressed(Key::ArrowDown) || i.scroll_delta.y < -1.0);
-            let up: bool = ctx.input(|i| i.key_pressed(Key::ArrowUp) || i.scroll_delta.y > 1.0);
+            let down: bool = ctx.input(|i| {
+                i.key_pressed(Key::ArrowDown)
+                    || i.key_pressed(Key::ArrowRight)
+                    || i.scroll_delta.y < -1.0
+            });
+            let up: bool = ctx.input(|i| {
+                i.key_pressed(Key::ArrowUp)
+                    || i.key_pressed(Key::ArrowLeft)
+                    || i.scroll_delta.y > 1.0
+            });
             if down && self.selected < self.application_manager.matches.len() - 1 {
                 self.selected += 1;
             }

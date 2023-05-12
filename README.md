@@ -57,7 +57,7 @@ paths = ["$HOME/Desktop"]
 The egui ScrollArea does not allow for movement using the arrow keys. This means I had to implement that myself. The method I chose (just remembering the index) does however overwrite the scrolling using the mousewheel/touchpad gestures etc. This means I had to implement the scrolling with the scrollwheel myself, which 'fights' against the default scrolling. This causes minor visual glitches but so far no actual bugs
 # Changes
 ## 0.1.3 
-### Features
+### Features added
 - A config file was added (see Configuration). At the moment only icon loading is configured here.
 ### Fixes
 - Launcher is forced into floating mode on tiling window managers to work like rofi etc.
@@ -98,3 +98,8 @@ If you want to change that see the Configuration part in this README
 ## 0.1.12
 ### Fixes
 - For some reason sway seems to pass whitespace to a launched program using exec. This lead the list to be empty
+## 0.1.13
+### Features added
+- Right(down) and left(up) arrow keys added to list navigation
+### Fixes
+- Fixes stdin thread panicing. Now it shuts down gracefully, once there is no input anymore
