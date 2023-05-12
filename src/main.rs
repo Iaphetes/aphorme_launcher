@@ -11,6 +11,7 @@ use crate::egui_ui::egui_ui::launch_egui_ui;
 #[cfg(feature = "iced-ui")]
 use crate::iced_ui::iced_ui::launch_iced_ui;
 use config::UIFramework;
+use log::error;
 use single_instance::SingleInstance;
 use std::io;
 use std::io::prelude::*;
@@ -75,8 +76,10 @@ fn spawn_stdin_channel() -> Receiver<String> {
     thread::spawn(move || loop {
         let mut buffer: Vec<u8> = Vec::new();
         io::stdin().lock().read_to_end(&mut buffer).unwrap();
-        tx.send(String::from_utf8_lossy(buffer.as_slice()).to_string())
-            .unwrap();
+        if let Err(error) = tx.send(String::from_utf8_lossy(buffer.as_slice()).to_string()) {
+            error!("Unable to send {:#?}, due to {:?}", buffer, error);
+            break;
+        }
     });
     rx
 }
