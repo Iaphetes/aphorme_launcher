@@ -108,11 +108,10 @@ pub mod egui_ui {
                     let image: RetainedImage = image_res?;
                     let id: TextureId = image.texture_id(&ctx);
                     if !self.icon_ids.contains_key(&application.name) {
-                        self.icon_ids
-                            .insert(application.name.clone(), Some(id.clone()));
+                        self.icon_ids.insert(application.name.clone(), Some(id));
                     }
                     self.icons.push(image);
-                    return Some(id);
+                    Some(id)
                 }
             }
         }
@@ -123,7 +122,7 @@ pub mod egui_ui {
             egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
         }
         fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-            self.scroll(&ctx);
+            self.scroll(ctx);
             let execute: bool = ctx.input(|i| i.key_pressed(Key::Enter));
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
                 _frame.close();
@@ -148,8 +147,8 @@ pub mod egui_ui {
                     .max_width(f32::INFINITY)
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        for (i, (application, _)) in (&self.application_manager.matches.clone())
-                            .into_iter()
+                        for (i, (application, _)) in (self.application_manager.matches.clone())
+                            .iter()
                             .enumerate()
                         {
                             let label_text: RichText = RichText::new(application.name.clone());
@@ -201,40 +200,4 @@ pub mod egui_ui {
             ctx.request_repaint();
         }
     }
-    // fn custom_window_frame(
-    //     ctx: &egui::Context,
-    //     _frame: &mut eframe::Frame,
-    //     add_contents: impl FnOnce(&mut egui::Ui),
-    // ) {
-    //     use egui::*;
-
-    //     let panel_frame = egui::Frame {
-    //         fill: ctx.style().visuals.window_fill(),
-    //         rounding: 10.0.into(),
-    //         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
-    //         outer_margin: 0.5.into(), // so the stroke is within the bounds
-    //         ..Default::default()
-    //     };
-
-    //     CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
-    //         let app_rect = ui.max_rect();
-
-    //         let title_bar_height = 32.0;
-    //         let title_bar_rect = {
-    //             let mut rect = app_rect;
-    //             rect.max.y = rect.min.y + title_bar_height;
-    //             rect
-    //         };
-
-    //         // Add the contents:
-    //         let content_rect = {
-    //             let mut rect = app_rect;
-    //             rect.min.y = title_bar_rect.max.y;
-    //             rect
-    //         }
-    //         .shrink(4.0);
-    //         let mut content_ui = ui.child_ui(content_rect, *ui.layout());
-    //         add_contents(&mut content_ui);
-    //     });
-    // }
 }

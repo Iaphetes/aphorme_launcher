@@ -22,6 +22,13 @@ const APPLICATION_PATHS: [&str; 4] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
 ];
+/// The type of application. Either a binary (not yet supported) or a Desktop file
+#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
+enum ApplicationType {
+    #[default]
+    DesktopFile,
+    Stdout, // BINARY,
+}
 const LOCAL_DIR: &str = "$HOME/.local/share/aphorme";
 #[derive(Default, Serialize, Deserialize)]
 struct PreferredMap(HashMap<Application, i64>);
@@ -63,8 +70,7 @@ impl ApplicationManager {
                 let local_path: String = LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
                 if Path::new(&local_path).exists() {
                     let preference_path: String = local_path + "/preferred_apps.json";
-                    if let Some(preference_file_content) = fs::read_to_string(&preference_path).ok()
-                    {
+                    if let Ok(preference_file_content) = fs::read_to_string(&preference_path) {
                         preferred_map = serde_json::from_str(&preference_file_content)
                             .ok()
                             .unwrap_or_default();
@@ -87,17 +93,14 @@ impl ApplicationManager {
                     command: field,
                     icon_path: None,
                     icon_name: None,
-                    application_type: ApplicationType::STDOUT,
+                    application_type: ApplicationType::Stdout,
                 });
             }
         }
 
         ApplicationManager {
             applications: applications.clone(),
-            matches: applications
-                .into_iter()
-                .map(|app| (app.clone(), 0))
-                .collect(),
+            matches: applications.into_iter().map(|app| (app, 0)).collect(),
             icon_theme: match icon {
                 true => get_icon_theme().unwrap_or_else(|| {
                     warn!("No icon theme found");
@@ -131,7 +134,7 @@ impl ApplicationManager {
         let selected_match: &Application = &self.matches[selected].0;
 
         match selected_match.application_type {
-            ApplicationType::DESKTOPFILE => {
+            ApplicationType::DesktopFile => {
                 let home_dir_opt = env::var_os("$HOME");
                 if let Some(home_dir) = home_dir_opt {
                     let local_path: String =
@@ -142,9 +145,9 @@ impl ApplicationManager {
                         std::fs::create_dir_all(&local_path);
                     }
                     let preference_path: String = local_path + "/preferred_apps.json";
-                    if let Ok(mut fileptr) = File::create(&preference_path) {
+                    if let Ok(mut fileptr) = File::create(preference_path) {
                         if let Err(err) = fileptr.write_all(
-                            &serde_json::to_string(&self.preferred_applications)
+                            serde_json::to_string(&self.preferred_applications)
                                 .unwrap_or_default()
                                 .as_bytes(),
                         ) {
@@ -154,7 +157,7 @@ impl ApplicationManager {
                 };
                 selected_match.run(false);
             }
-            ApplicationType::STDOUT => println!("{}", selected_match.command),
+            ApplicationType::Stdout => println!("{}", selected_match.command),
         }
     }
     pub fn load_next_icons(&mut self, amount: usize) -> bool {
@@ -167,7 +170,7 @@ impl ApplicationManager {
             };
             for i in self.loaded_icons..last {
                 self.applications[i].icon_path = match &self.applications[i].icon_name {
-                    Some(path) => match lookup_icon(path.to_owned())
+                    Some(path) => match lookup_icon(path)
                         .from_theme(&self.icon_theme)
                         .with_size(8)
                         .next()
@@ -181,29 +184,22 @@ impl ApplicationManager {
                     None => None,
                 };
 
-                match (&mut self.matches)
-                    .into_iter()
+                if let Some(m) = self
+                    .matches
+                    .iter_mut()
                     .find(|m| m.0.name == self.applications[i].name)
                 {
-                    Some(m) => m.0.icon_path = self.applications[i].icon_path.clone(),
-                    None => {}
+                    m.0.icon_path = self.applications[i].icon_path.clone();
                 };
             }
             self.loaded_icons += amount;
         } else {
             is_done = true;
         }
-        return is_done;
+        is_done
     }
 }
 
-/// The type of application. Either a binary (not yet supported) or a Desktop file
-#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
-enum ApplicationType {
-    #[default]
-    DESKTOPFILE,
-    STDOUT, // BINARY,
-}
 /// A specific application found on the system
 #[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
 pub struct Application {
@@ -231,10 +227,10 @@ impl PartialOrd for Application {
 impl Application {
     /// Executes the program and exits if quit is true
     pub fn run(&self, quit: bool) {
-        let split_command: Vec<&str> = self.command.split(" ").collect();
+        let split_command: Vec<&str> = self.command.split(' ').collect();
         let mut args: Vec<&str> = Vec::new();
-        for arg in split_command[1..].into_iter() {
-            if *arg != "" && !arg.starts_with("%") {
+        for arg in split_command[1..].iter() {
+            if !arg.is_empty() && !arg.starts_with('%') {
                 args.push(arg.to_owned());
             }
         }
@@ -301,7 +297,7 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                                             command: command.into(),
                                             icon_path,
                                             icon_name,
-                                            application_type: ApplicationType::DESKTOPFILE,
+                                            application_type: ApplicationType::DesktopFile,
                                         })
                                     } else {
                                         None
@@ -329,5 +325,5 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
             }
         }
     }
-    return applications;
+    applications
 }
