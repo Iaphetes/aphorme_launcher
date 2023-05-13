@@ -66,6 +66,7 @@ pub mod ui {
             let down: bool = ctx.input(|i| {
                 i.key_pressed(Key::ArrowDown)
                     || i.key_pressed(Key::ArrowRight)
+                    || i.key_pressed(Key::Tab)
                     || i.scroll_delta.y < -1.0
             });
             let up: bool = ctx.input(|i| {
