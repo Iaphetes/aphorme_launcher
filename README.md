@@ -43,6 +43,11 @@ Default paths are
   "$HOME/.local/share/applications",
   "/var/lib/flatpak/exports/share/applications"
 ```
+### preferred_apps
+Contains configuration for the preferred apps (aka. the last used apps)
+#### max_weight
+Maximum weight allowed.
+Defaults to 10.
 ## Example Config
 ```toml
 [gui_cfg]
@@ -56,42 +61,6 @@ paths = ["$HOME/Desktop"]
 ## Scrolling is somewhat weird (and the scroll bar is visible) in egui
 The egui ScrollArea does not allow for movement using the arrow keys. This means I had to implement that myself. The method I chose (just remembering the index) does however overwrite the scrolling using the mousewheel/touchpad gestures etc. This means I had to implement the scrolling with the scrollwheel myself, which 'fights' against the default scrolling. This causes minor visual glitches but so far no actual bugs
 # Changes
-## 0.1.3 
-### Features added
-- A config file was added (see Configuration). At the moment only icon loading is configured here.
-### Fixes
-- Launcher is forced into floating mode on tiling window managers to work like rofi etc.
-
-## 0.1.4 
-### Fixes
-- Changed the default for icons. Previously they were disabled by default now the default is enabled.
-If you want to change that see the Configuration part in this README
-## 0.1.5
-### Fixes
-- Improved startup time by loading icons in batches of 5 at every repaint of the UI
-## 0.1.6
-### Fixes
-- Now checks if it is the only instance and if not, it will close down
-- Removed parallel iterator from loading, since the overhead was too great
-- Made code more readable (Thanks AnyTimeTraveler)
-- Started work on iced (not yet usable)
-## 0.1.7
-### Fixes
-- Removed unused dependencies
-- Fixed bugs where a combination of features could lead to crashes
-## 0.1.8
-### Fixes
-- Fixed bug where the socket opened by a library would not be closed after running a program
-## 0.1.9
-### Fixes
-- Fixed bug where one could not scroll past the 100th item in the search (silly me for leaving that hardcoded from my tests...)
-- Made compilation not dependant on nightly toolchain
-- Fixed config bug, where a non-existent config led to a crash. Now the config will always be created in $HOME/aphorme/config.toml
-## 0.1.10
-### Features added
-- You can now add additional paths to search or replace them entirely. See the `Configuration` section for more on this.
-### Fixes
-- Now properly resolves `$HOME` to the home directory
 ## 0.1.11
 ### Features added
 - Custom selection of inputs now possible. Will echo the selected option (similar to dmenu)
@@ -103,3 +72,9 @@ If you want to change that see the Configuration part in this README
 - Right(down) and left(up) arrow keys added to list navigation
 ### Fixes
 - Fixes stdin thread panicing. Now it shuts down gracefully, once there is no input anymore
+## 0.1.14
+### Features added
+- New "Preferred Apps" feature, which remembers frequently used apps and puts them on top in searches.
+### Fixes
+- Cleaned up the code somewhat
+- The code will now not error out, when a Desktop file is not readable. If you are missing desktop files run the launcher in the terminal and check the error output.

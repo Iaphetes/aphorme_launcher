@@ -1,4 +1,4 @@
-use crate::config::AppCFG;
+use crate::config::{AppCFG, PrefCFG};
 use freedesktop_entry_parser::{parse_entry, Entry};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -23,16 +23,72 @@ const APPLICATION_PATHS: [&str; 4] = [
     "/var/lib/flatpak/exports/share/applications",
 ];
 /// The type of application. Either a binary (not yet supported) or a Desktop file
-#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
+#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash, Debug)]
 enum ApplicationType {
     #[default]
     DesktopFile,
     Stdout, // BINARY,
 }
-const LOCAL_DIR: &str = "$HOME/.local/share/aphorme";
+const LOCAL_DIR: &str = "$HOME/.local/share/aphorme/preferred_apps.json";
 #[derive(Default, Serialize, Deserialize)]
-struct PreferredMap(HashMap<Application, i64>);
-
+struct PreferredApps {
+    path: PathBuf,
+    weight_map: HashMap<String, i64>,
+    max_weight: i64,
+}
+impl PreferredApps {
+    pub fn new(home_dir: &str, preference_cfg: &PrefCFG) -> Self {
+        let mut preferred_map: PreferredApps = PreferredApps {
+            path: PathBuf::from(LOCAL_DIR.replace("$HOME", home_dir)),
+            weight_map: HashMap::new(),
+            max_weight: preference_cfg.max_weight,
+        };
+        if Path::new(&preferred_map.path).exists() {
+            if let Ok(preference_file_content) = fs::read_to_string(&preferred_map.path) {
+                preferred_map.weight_map = serde_json::from_str(&preference_file_content)
+                    .ok()
+                    .unwrap_or_default();
+            };
+        }
+        preferred_map
+    }
+    pub fn save(&self) {
+        // error!("{:#?}", self.weight_map);
+        if let Some(containing_folder) = self.path.parent() {
+            if !Path::new(&containing_folder).exists() {
+                if let Err(err) = std::fs::create_dir_all(containing_folder) {
+                    error!("{:?}", err);
+                    return;
+                }
+            }
+            if let Ok(mut fileptr) = File::create(&self.path) {
+                error!("{:#?}", serde_json::to_string(&self.weight_map));
+                if let Err(err) = fileptr.write_all(
+                    serde_json::to_string(&self.weight_map)
+                        .unwrap_or_default()
+                        .as_bytes(),
+                ) {
+                    error!("{:?}", err);
+                }
+            }
+        }
+    }
+    pub fn update_preferrence(&mut self, application: &Application) {
+        match self.weight_map.get_mut(&application.name) {
+            Some(weight) => {
+                if *weight <= self.max_weight {
+                    *weight += 1;
+                }
+            }
+            None => {
+                self.weight_map.insert(application.name.clone(), 1);
+            }
+        };
+    }
+    pub fn get_weight(&self, application: &Application) -> i64 {
+        *self.weight_map.get(&application.name).unwrap_or(&0)
+    }
+}
 #[derive(Default)]
 pub struct ApplicationManager {
     applications: Vec<Application>,
@@ -40,7 +96,7 @@ pub struct ApplicationManager {
     icon_theme: String,
     loaded_icons: usize,
     instance: Option<SingleInstance>,
-    preferred_applications: PreferredMap,
+    preferred_applications: PreferredApps,
 }
 impl ApplicationManager {
     pub fn new(
@@ -60,26 +116,21 @@ impl ApplicationManager {
         }
 
         let home_dir_opt = env::var_os("HOME");
-        let mut preferred_map: PreferredMap = PreferredMap::default();
+
+        let mut preferred_apps: Option<PreferredApps> = None;
         match home_dir_opt {
             Some(home_dir) => {
                 paths = paths
                     .into_iter()
                     .map(|p| p.replace("$HOME", &home_dir.to_string_lossy()))
                     .collect();
-                let local_path: String = LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
-                if Path::new(&local_path).exists() {
-                    let preference_path: String = local_path + "/preferred_apps.json";
-                    if let Ok(preference_file_content) = fs::read_to_string(&preference_path) {
-                        preferred_map = serde_json::from_str(&preference_file_content)
-                            .ok()
-                            .unwrap_or_default();
-                    };
-                }
+                preferred_apps = Some(PreferredApps::new(
+                    &home_dir.to_string_lossy(),
+                    &config.preferred_apps,
+                ));
             }
             None => warn!("Impossible to get your home dir!"),
         };
-
         let mut applications: Vec<Application>;
         if custom_fields.is_empty() {
             applications = collect_applications(&paths);
@@ -110,7 +161,7 @@ impl ApplicationManager {
             },
             loaded_icons: 0,
             instance: Some(instance),
-            preferred_applications: preferred_map,
+            preferred_applications: preferred_apps.unwrap_or_default(),
         }
     }
     /// Clear the Matches and then from the vector of applications fuzzy find the search_str and  append to the matches
@@ -124,7 +175,10 @@ impl ApplicationManager {
                 search_str, &application.name, search_match
             );
             if let Some(score) = search_match {
-                self.matches.push((application.clone(), score));
+                self.matches.push((
+                    application.clone(),
+                    score + self.preferred_applications.get_weight(application),
+                ));
             }
         }
         self.matches.sort_by(|a, b| b.1.cmp(&a.1));
@@ -135,28 +189,12 @@ impl ApplicationManager {
 
         match selected_match.application_type {
             ApplicationType::DesktopFile => {
-                let home_dir_opt = env::var_os("$HOME");
-                if let Some(home_dir) = home_dir_opt {
-                    let local_path: String =
-                        LOCAL_DIR.replace("$HOME", &home_dir.to_string_lossy());
-                    if Path::new(&local_path).exists() {
-                    } else {
-                        //If let err
-                        std::fs::create_dir_all(&local_path);
-                    }
-                    let preference_path: String = local_path + "/preferred_apps.json";
-                    if let Ok(mut fileptr) = File::create(preference_path) {
-                        if let Err(err) = fileptr.write_all(
-                            serde_json::to_string(&self.preferred_applications)
-                                .unwrap_or_default()
-                                .as_bytes(),
-                        ) {
-                            error!("{:?}", err);
-                        }
-                    }
-                };
+                self.preferred_applications
+                    .update_preferrence(selected_match);
+                self.preferred_applications.save();
                 selected_match.run(false);
             }
+            #[allow(clippy::print_stdout)]
             ApplicationType::Stdout => println!("{}", selected_match.command),
         }
     }
@@ -201,7 +239,7 @@ impl ApplicationManager {
 }
 
 /// A specific application found on the system
-#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash)]
+#[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash, Debug)]
 pub struct Application {
     /// Name of the application as stated in the desktop file or the name of the executable if
     /// Application Type is binary
@@ -253,71 +291,62 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                 let path_applications: Vec<Option<Application>> = files
                     .collect::<Vec<Result<fs::DirEntry, std::io::Error>>>()
                     .iter()
-                    .map(|file_res| {
-                        match file_res {
-                            Ok(file) => {
-                                if file.file_name().to_string_lossy().ends_with(".desktop") {
-                                    let entry: Entry = parse_entry(file.path()).expect(&format!(
-                                        "Desktop file {} not readable",
+                    .map(|file_res| match file_res {
+                        Ok(file) => {
+                            if !file.file_name().to_string_lossy().ends_with(".desktop") {
+                                return None;
+                            }
+                            let entry: Entry = match parse_entry(file.path()) {
+                                Ok(entry) => entry,
+                                Err(err) => {
+                                    error!(
+                                        "Desktop file {} not readable, due to {:?}",
+                                        file.path().to_string_lossy(),
+                                        err
+                                    );
+                                    return None;
+                                }
+                            };
+                            if let Some(nodisplay) =
+                                entry.section("Desktop Entry").attr("NoDisplay")
+                            {
+                                if nodisplay == "true" {
+                                    return None;
+                                }
+                            }
+
+                            let name: Option<&str> = entry.section("Desktop Entry").attr("Name");
+                            let command: Option<&str> = entry.section("Desktop Entry").attr("Exec");
+                            let icon_path: Option<PathBuf> = None;
+                            let icon_name: Option<String> = entry
+                                .section("Desktop Entry")
+                                .attr("Icon")
+                                .map(|icon| icon.to_owned());
+                            match (name, command) {
+                                (Some(name), Some(command)) => Some(Application {
+                                    name: name.into(),
+                                    command: command.into(),
+                                    icon_path,
+                                    icon_name,
+                                    application_type: ApplicationType::DesktopFile,
+                                }),
+                                _ => {
+                                    error!(
+                                        "Incomplete desktop file {}",
                                         file.path().to_string_lossy()
-                                    ));
-                                    let mut display: bool = true;
-                                    match entry.section("Desktop Entry").attr("NoDisplay") {
-                                        Some(nodisplay) => {
-                                            if nodisplay == "true" {
-                                                // continue;
-                                                display = false;
-                                            }
-                                        }
-                                        None => {}
-                                    }
-                                    if display {
-                                        let name: &str = entry
-                                            .section("Desktop Entry")
-                                            .attr("Name")
-                                            .expect(&format!(
-                                                "Incomplete Desktop file {}",
-                                                file.path().to_string_lossy()
-                                            ));
-                                        let command: &str = entry
-                                            .section("Desktop Entry")
-                                            .attr("Exec")
-                                            .expect(&format!(
-                                                "Incomplete Desktop file {}",
-                                                file.path().to_string_lossy()
-                                            ));
-                                        let icon_path: Option<PathBuf> = None;
-                                        let icon_name: Option<String> =
-                                            match entry.section("Desktop Entry").attr("Icon") {
-                                                Some(icon) => Some(icon.to_owned()),
-                                                None => None,
-                                            };
-                                        Some(Application {
-                                            name: name.into(),
-                                            command: command.into(),
-                                            icon_path,
-                                            icon_name,
-                                            application_type: ApplicationType::DesktopFile,
-                                        })
-                                    } else {
-                                        None
-                                    }
-                                } else {
+                                    );
                                     None
                                 }
                             }
-                            Err(error) => {
-                                error!("Error encountered while reading file {:?}", error);
-                                None
-                            }
+                        }
+                        Err(error) => {
+                            error!("Error encountered while reading file {:?}", error);
+                            None
                         }
                     })
                     .collect();
-                for application_opt in path_applications {
-                    match application_opt {
-                        Some(application) => applications.push(application),
-                        None => {}
-                    }
+                for application in path_applications.iter().flatten() {
+                    applications.push(application.clone());
                 }
             }
             Err(error) => {

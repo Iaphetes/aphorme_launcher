@@ -2,33 +2,25 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum UIFramework {
-    EGUI,
-    ICED,
+    Egui,
+    Iced,
 }
 impl Default for UIFramework {
     fn default() -> Self {
         if cfg!(feature = "egui-ui") {
-            return Self::EGUI;
+            return Self::Egui;
         }
         if cfg!(feature = "iced-ui") {
-            Self::ICED
+            Self::Iced
         } else {
-            Self::EGUI
+            Self::Egui
         }
     }
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub gui_cfg: GuiCFG,
     pub app_cfg: Option<AppCFG>,
-}
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            gui_cfg: GuiCFG::default(),
-            app_cfg: None,
-        }
-    }
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuiCFG {
@@ -43,16 +35,23 @@ impl Default for GuiCFG {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PrefCFG {
+    pub max_weight: i64,
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppCFG {
     pub paths: Vec<String>,
     pub use_default_paths: Option<bool>,
+    pub preferred_apps: PrefCFG,
 }
 impl Default for AppCFG {
     fn default() -> Self {
         AppCFG {
             paths: Vec::new(),
             use_default_paths: Some(true),
+            preferred_apps: PrefCFG { max_weight: 10 },
         }
     }
 }

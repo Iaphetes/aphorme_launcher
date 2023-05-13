@@ -1,5 +1,5 @@
 #[cfg(feature = "egui-ui")]
-pub mod egui_ui {
+pub mod ui {
     use std::collections::HashMap;
     use std::path::PathBuf;
 
@@ -113,7 +113,7 @@ pub mod egui_ui {
                         }
                     };
                     let image: RetainedImage = image_res?;
-                    let id: TextureId = image.texture_id(&ctx);
+                    let id: TextureId = image.texture_id(ctx);
                     if !self.icon_ids.contains_key(&application.name) {
                         self.icon_ids.insert(application.name.clone(), Some(id));
                     }

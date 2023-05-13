@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-                                                                   // #![feature(map_try_insert)]
+#![deny(clippy::print_stdout)] // #![feature(map_try_insert)]
 mod apps;
 mod config;
 mod egui_ui;
@@ -7,11 +7,11 @@ mod iced_ui;
 use crate::apps::ApplicationManager;
 use crate::config::{load_config, Config};
 #[cfg(feature = "egui-ui")]
-use crate::egui_ui::egui_ui::launch_egui_ui;
+use crate::egui_ui::ui::launch_egui_ui;
 #[cfg(feature = "iced-ui")]
 use crate::iced_ui::iced_ui::launch_iced_ui;
 use config::UIFramework;
-use log::debug;
+use log::{debug, error};
 use single_instance::SingleInstance;
 use std::io;
 use std::io::prelude::*;
@@ -37,23 +37,23 @@ fn main() {
         let gui_framework: UIFramework = cfg.gui_cfg.ui_framework.unwrap_or_default();
         // let gui_framework: GuiFramework = GuiFramework::EGUI; //cfg.ui_framework.unwrap_or_default();
         match gui_framework {
-            UIFramework::EGUI => {
+            UIFramework::Egui => {
                 #[cfg(feature = "egui-ui")]
                 match launch_egui_ui(cfg.gui_cfg, application_manager) {
                     Ok(()) => {}
-                    Err(error) => println!("{error:?}"),
+                    Err(error) => error!("{error:?}"),
                 };
                 #[cfg(not(feature = "egui-ui"))]
                 panic!("Trying to use egui without \"ui-egui\"-feature activated");
             }
 
-            UIFramework::ICED => {
+            UIFramework::Iced => {
                 #[cfg(feature = "iced-ui")]
                 launch_iced_ui(cfg.gui_cfg, application_manager);
             }
         }
     } else {
-        println!("another instance is already running");
+        error!("another instance is already running");
     }
 }
 /// Gets custom inputs piped into the program
