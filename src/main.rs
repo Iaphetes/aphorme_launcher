@@ -10,18 +10,28 @@ use crate::config::{load_config, Config};
 use crate::egui_ui::ui::launch_egui_ui;
 #[cfg(feature = "iced-ui")]
 use crate::iced_ui::iced_ui::launch_iced_ui;
+use clap::Parser;
 use config::UIFramework;
 use log::{debug, error};
 use single_instance::SingleInstance;
-use std::io;
-use std::io::prelude::*;
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
-use std::{thread, time};
-fn main() {
-    let mut custom_inputs: Vec<String> = Vec::new();
+use std::error::Error;
+use std::sync::mpsc::RecvTimeoutError;
+use std::time::Duration;
+use std::{io, io::prelude::*, sync::mpsc, sync::mpsc::Receiver, thread};
 
-    fetch_custom_commands(&mut custom_inputs);
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about=None)]
+struct Args {
+    #[arg(long)]
+    select_from_stdin: bool,
+}
+fn main() -> Result<(), Box<dyn Error>> {
+    let args: Args = Args::parse();
+    let mut custom_inputs: Vec<String> = Vec::new();
+    if args.select_from_stdin {
+        fetch_custom_commands(&mut custom_inputs)?;
+    }
+
     let instance = SingleInstance::new("Aphorme").unwrap();
     let _ = env_logger::builder()
         .target(env_logger::Target::Stderr)
@@ -55,20 +65,21 @@ fn main() {
     } else {
         error!("another instance is already running");
     }
+    Ok(())
 }
 /// Gets custom inputs piped into the program
 /// If present this will replace the default applications and output the selection to stdout
-fn fetch_custom_commands(custom_inputs: &mut Vec<String>) {
+fn fetch_custom_commands(custom_inputs: &mut Vec<String>) -> Result<(), RecvTimeoutError> {
     let stdin_channel = spawn_stdin_channel();
-    thread::sleep(time::Duration::from_millis(10));
-    if let Ok(key) = stdin_channel.try_recv() {
-        for line in key.split('\n') {
-            let command: String = line.to_string().replace('\n', "");
-            if !command.is_empty() {
-                custom_inputs.push(command);
-            }
+
+    let key = stdin_channel.recv_timeout(Duration::from_secs(1))?;
+    for line in key.split('\n') {
+        let command: String = line.to_string().replace('\n', "");
+        if !command.is_empty() {
+            custom_inputs.push(command);
         }
     }
+    Ok(())
 }
 /// Thread which tries to read from the stin
 fn spawn_stdin_channel() -> Receiver<String> {

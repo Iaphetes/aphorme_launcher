@@ -192,7 +192,12 @@ pub mod ui {
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {
                                         if self.gui_cfg.icon {
-                                            ui.image(icon, Vec2 { x: 8.0, y: 8.0 });
+                                            ui.add(egui::Image::new(
+                                                egui::load::SizedTexture::new(
+                                                    icon,
+                                                    Vec2::new(12.0, 12.0),
+                                                ),
+                                            ));
                                         }
                                         ui.label(label_text);
                                     })
