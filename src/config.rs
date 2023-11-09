@@ -26,12 +26,14 @@ pub struct Config {
 pub struct GuiCFG {
     pub icon: bool,
     pub ui_framework: Option<UIFramework>,
+    pub retain_focus: bool,
 }
 impl Default for GuiCFG {
     fn default() -> Self {
         GuiCFG {
             icon: true,
             ui_framework: None,
+            retain_focus: true,
         }
     }
 }

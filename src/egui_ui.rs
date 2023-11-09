@@ -129,15 +129,18 @@ pub mod ui {
         fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
             egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
         }
-        fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
             self.scroll(ctx);
+            if self.gui_cfg.retain_focus {
+                frame.focus();
+            }
             let execute: bool = ctx.input(|i| i.key_pressed(Key::Enter));
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
-                _frame.close();
+                frame.close();
             }
             if execute {
                 self.application_manager.execute_first_match(self.selected);
-                _frame.close();
+                frame.close();
             }
             if self.gui_cfg.icon {
                 self.application_manager.load_next_icons(5);

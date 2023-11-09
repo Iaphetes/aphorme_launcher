@@ -58,11 +58,18 @@ Options for the gui.
 ### icons: boolean
 
 Enable or disable icon loading.
+True by default.
 
 ### GuiFramework
 
 Which GuiFramework to used. At the moment EGUI and ICED.
 Note that at the moment ICED is not compiled into the launcher by default. To do so compile with the feature `iced-ui`
+
+### retain_focus: boolean
+
+Forces window to remain in focus even if other windows try to grab focus.
+
+Known issues: Doesn't work with egui + wayland.
 
 ## app_cfg
 
@@ -127,6 +134,16 @@ For previous versions see CHANGELOG.md
 - Delay before stdin handling was too short. Now requires --select-from-stdin argument to work.
 - Updated libraries
 
-### Known problems
+### Known issues
 
 - EGUIs RetainedImage is deprecated. Will be removed in a future released of Aphorme
+
+## 0.1.16
+
+### Features
+
+- Added option to retain focus on the launcher. Useful if starting multiple slow launching programs
+
+### Known issues
+
+- Focus retention only working with egui + X11. egui does not support focus grabbing on wayland
