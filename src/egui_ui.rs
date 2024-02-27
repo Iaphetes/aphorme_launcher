@@ -6,7 +6,7 @@ pub mod ui {
     use crate::apps::{Application, ApplicationManager};
     use crate::config::GuiCFG;
     use eframe::{
-        egui::{self, Key, RichText},
+        egui::{self, Key, RichText, ViewportCommand},
         epaint::{Color32, TextureId, Vec2},
     };
     use egui_extras::RetainedImage;
@@ -16,11 +16,12 @@ pub mod ui {
         application_manager: ApplicationManager,
     ) -> Result<(), eframe::Error> {
         let options = eframe::NativeOptions {
-            initial_window_size: Some(egui::vec2(320.0, 240.0)),
-            always_on_top: true,
-            decorated: false,
+            viewport: egui::ViewportBuilder::default()
+                .with_inner_size([320.0, 240.0])
+                .with_decorations(false)
+                .with_resizable(false)
+                .with_always_on_top(),
             centered: true,
-            resizable: false,
             ..Default::default()
         };
 
@@ -67,12 +68,12 @@ pub mod ui {
                 i.key_pressed(Key::ArrowDown)
                     || i.key_pressed(Key::ArrowRight)
                     || i.key_pressed(Key::Tab)
-                    || i.scroll_delta.y < -1.0
+                    || i.raw_scroll_delta.y < -1.0
             });
             let up: bool = ctx.input(|i| {
                 i.key_pressed(Key::ArrowUp)
                     || i.key_pressed(Key::ArrowLeft)
-                    || i.scroll_delta.y > 1.0
+                    || i.raw_scroll_delta.y > 1.0
             });
             if down && self.selected < self.application_manager.matches.len() - 1 {
                 self.selected += 1;
@@ -129,18 +130,18 @@ pub mod ui {
         fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
             egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
         }
-        fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
             self.scroll(ctx);
             if self.gui_cfg.retain_focus {
-                frame.focus();
+                ctx.send_viewport_cmd(ViewportCommand::Focus)
             }
             let execute: bool = ctx.input(|i| i.key_pressed(Key::Enter));
             if ctx.input(|i| i.key_pressed(Key::Escape)) {
-                frame.close();
+                ctx.send_viewport_cmd(ViewportCommand::Close)
             }
             if execute {
                 self.application_manager.execute_first_match(self.selected);
-                frame.close();
+                ctx.send_viewport_cmd(ViewportCommand::Close)
             }
             if self.gui_cfg.icon {
                 self.application_manager.load_next_icons(5);

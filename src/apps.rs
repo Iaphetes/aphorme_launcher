@@ -351,7 +351,7 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                 }
             }
             Err(error) => {
-                error!("Could not read {path:?} because of {error:?}")
+                warn!("Could not read {path:?} because of {error:?}")
             }
         }
     }
