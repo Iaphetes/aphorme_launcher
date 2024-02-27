@@ -17,20 +17,23 @@ impl Default for UIFramework {
         }
     }
 }
+
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
-    pub gui_cfg: GuiCFG,
+    pub gui_cfg: GuiCfg,
     pub app_cfg: Option<AppCFG>,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GuiCFG {
+pub struct GuiCfg {
     pub icon: bool,
     pub ui_framework: Option<UIFramework>,
     pub retain_focus: bool,
 }
-impl Default for GuiCFG {
+
+impl Default for GuiCfg {
     fn default() -> Self {
-        GuiCFG {
+        GuiCfg {
             icon: true,
             ui_framework: None,
             retain_focus: true,
@@ -42,12 +45,14 @@ impl Default for GuiCFG {
 pub struct PrefCFG {
     pub max_weight: i64,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppCFG {
     pub paths: Vec<String>,
     pub use_default_paths: Option<bool>,
     pub preferred_apps: PrefCFG,
 }
+
 impl Default for AppCFG {
     fn default() -> Self {
         AppCFG {
@@ -57,14 +62,15 @@ impl Default for AppCFG {
         }
     }
 }
+
 pub fn load_config(path: Option<PathBuf>) -> Config {
     match path {
         Some(p) => confy::load_path(p).expect("Configuration could not be loaded"),
         None => confy::load("aphorme", Some("config"))
             .ok()
             .unwrap_or_else(|| {
-                let config: Config = Config::default();
-                let _ = confy::store("aphorme", Some("config"), Config::default());
+                let config = Config::default();
+                _ = confy::store("aphorme", Some("config"), Config::default());
                 config
             }),
     }

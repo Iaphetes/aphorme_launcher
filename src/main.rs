@@ -4,12 +4,13 @@ mod apps;
 mod config;
 mod egui_ui;
 mod iced_ui;
+
 use crate::apps::ApplicationManager;
-use crate::config::{load_config, Config};
+use crate::config::load_config;
 #[cfg(feature = "egui-ui")]
-use crate::egui_ui::ui::launch_egui_ui;
+use crate::egui_ui::launch_egui_ui;
 #[cfg(feature = "iced-ui")]
-use crate::iced_ui::iced_ui::launch_iced_ui;
+use crate::iced_ui::launch_iced_ui;
 use clap::Parser;
 use config::UIFramework;
 use log::{debug, error};
@@ -25,27 +26,28 @@ struct Args {
     #[arg(long)]
     select_from_stdin: bool,
 }
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let args: Args = Args::parse();
-    let mut custom_inputs: Vec<String> = Vec::new();
+    let args = Args::parse();
+    let mut custom_inputs = Vec::new();
     if args.select_from_stdin {
         fetch_custom_commands(&mut custom_inputs)?;
     }
 
     let instance = SingleInstance::new("Aphorme").unwrap();
-    let _ = env_logger::builder()
+    env_logger::builder()
         .target(env_logger::Target::Stderr)
-        .try_init();
+        .init();
     if instance.is_single() {
-        let cfg: Config = load_config(None);
-        let application_manager: ApplicationManager = ApplicationManager::new(
-            cfg.app_cfg.unwrap_or_default(),
+        let cfg = load_config(None);
+        let application_manager = ApplicationManager::new(
+            &cfg.app_cfg.unwrap_or_default(),
             cfg.gui_cfg.icon,
             instance,
             custom_inputs,
         );
-        let gui_framework: UIFramework = cfg.gui_cfg.ui_framework.unwrap_or_default();
-        // let gui_framework: GuiFramework = GuiFramework::EGUI; //cfg.ui_framework.unwrap_or_default();
+        let gui_framework = cfg.gui_cfg.ui_framework.unwrap_or_default();
+        // let gui_framework = GuiFramework::EGUI; //cfg.ui_framework.unwrap_or_default();
         match gui_framework {
             UIFramework::Egui => {
                 #[cfg(feature = "egui-ui")]
@@ -67,6 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
+
 /// Gets custom inputs piped into the program
 /// If present this will replace the default applications and output the selection to stdout
 fn fetch_custom_commands(custom_inputs: &mut Vec<String>) -> Result<(), RecvTimeoutError> {
@@ -74,18 +77,19 @@ fn fetch_custom_commands(custom_inputs: &mut Vec<String>) -> Result<(), RecvTime
 
     let key = stdin_channel.recv_timeout(Duration::from_secs(1))?;
     for line in key.split('\n') {
-        let command: String = line.to_string().replace('\n', "");
+        let command = line.to_string().replace('\n', "");
         if !command.is_empty() {
             custom_inputs.push(command);
         }
     }
     Ok(())
 }
+
 /// Thread which tries to read from the stin
 fn spawn_stdin_channel() -> Receiver<String> {
     let (tx, rx) = mpsc::channel::<String>();
     thread::spawn(move || loop {
-        let mut buffer: Vec<u8> = Vec::new();
+        let mut buffer = Vec::new();
         io::stdin().lock().read_to_end(&mut buffer).unwrap();
         if let Err(error) = tx.send(String::from_utf8_lossy(buffer.as_slice()).to_string()) {
             debug!("Unable to send {:#?}, due to {:?}", buffer, error);
