@@ -16,11 +16,12 @@ use std::process::Command;
 use std::{env, fs};
 /// The paths where the desktop files and binaries are located. Will be exported to a config file
 /// and inserted in the defaults
-const APPLICATION_PATHS: [&str; 4] = [
+const APPLICATION_PATHS: [&str; 5] = [
     "/usr/share/applications",
     "/usr/local/share/applications",
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
+    "/run/current-system/sw/"
 ];
 /// The type of application. Either a binary (not yet supported) or a Desktop file
 #[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash, Debug)]

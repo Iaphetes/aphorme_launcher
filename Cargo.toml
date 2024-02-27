@@ -10,11 +10,11 @@ homepage = "https://github.com/Iaphetes/aphorme_launcher"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = {version = "0.23", optional = true}
-egui_extras = {version = "0.23.0", features = ["image", "svg"], optional = true}
+eframe = {version = "0.26", optional = true}
+egui_extras = {version = "0.26", features = ["image", "svg"], optional = true}
 freedesktop_entry_parser = "1.3.0"
 fuzzy-matcher = "0.3"
-linicon = "2.3.0"
+linicon = "2.3"
 linicon-theme = "1.2"
 image = { version = "0.24", features = ["jpeg", "png"] }
 serde = { version = "1.0", features = ["derive"] }
