@@ -1,9 +1,3 @@
-# ❗❗❗Breaking changes ❗❗❗
-
-## Input piping
-
-- Direct input piping now requires the --select-from-stdin argument
-
 # A Linux Program Launcher
 
 This is a Program Launcher written in Rust.
@@ -147,3 +141,13 @@ For previous versions see CHANGELOG.md
 ### Known issues
 
 - Focus retention only working with egui + X11. egui does not support focus grabbing on wayland
+
+## 0.1.17
+
+### Features
+
+- Started work on Nix support
+
+### Fixes
+
+- Updated to egui 0.26 
