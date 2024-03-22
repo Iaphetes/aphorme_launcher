@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
   let
-    version = (builtins.fromTOML (builtins.readFile ./rust-toolchain.toml)).toolchain.channel;
+    overrides = (builtins.fromTOML (builtins.readFile ./rust-toolchain.toml));
     libPath = with pkgs; lib.makeLibraryPath [
       libGL
       libxkbcommon
@@ -14,7 +14,7 @@ in
       llvmPackages.bintools
       rustup
     ];
-    RUSTC_VERSION = version;
+    RUSTC_VERSION = overrides.toolchain.channel;
     # https://github.com/rust-lang/rust-bindgen#environment-variables
     LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_latest.libclang.lib ];
     shellHook = ''
