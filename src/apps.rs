@@ -63,7 +63,7 @@ impl PreferredApps {
                 }
             }
             if let Ok(mut fileptr) = File::create(&self.path) {
-                error!("{:#?}", serde_json::to_string(&self.weight_map));
+                // error!("{:#?}", serde_json::to_string(&self.weight_map));
                 if let Err(err) = fileptr.write_all(
                     serde_json::to_string(&self.weight_map)
                         .unwrap_or_default()
