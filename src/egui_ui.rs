@@ -6,7 +6,7 @@ pub mod ui {
     use crate::apps::{Application, ApplicationManager};
     use crate::config::GuiCFG;
     use eframe::{
-        egui::{self, Key, RichText, ViewportCommand},
+        egui::{self, FontId, Key, RichText, ViewportCommand},
         epaint::{Color32, TextureId, Vec2},
     };
     use egui_extras::RetainedImage;
@@ -17,7 +17,7 @@ pub mod ui {
     ) -> Result<(), eframe::Error> {
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_inner_size([320.0, 240.0])
+                .with_inner_size([gui_cfg.window_size.0 as f32, gui_cfg.window_size.1 as f32])
                 .with_decorations(false)
                 .with_resizable(false)
                 .with_always_on_top(),
@@ -163,7 +163,7 @@ pub mod ui {
                             .iter()
                             .enumerate()
                         {
-                            let label_text: RichText = RichText::new(application.name.clone());
+                            let label_text: RichText = RichText::new(application.name.clone()).font(FontId::proportional(self.gui_cfg.font_size as f32));
                             let mut background_color: Color32 =
                                 Color32::from_rgba_unmultiplied(0, 0, 0, 0);
                             if i == self.selected {
@@ -199,7 +199,8 @@ pub mod ui {
                                             ui.add(egui::Image::new(
                                                 egui::load::SizedTexture::new(
                                                     icon,
-                                                    Vec2::new(12.0, 12.0),
+                                                    Vec2::new(self.gui_cfg.font_size as f32, self.gui_cfg.font_size as f32),
+
                                                 ),
                                             ));
                                         }

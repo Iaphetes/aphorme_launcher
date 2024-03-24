@@ -27,6 +27,8 @@ pub struct GuiCFG {
     pub icon: bool,
     pub ui_framework: Option<UIFramework>,
     pub retain_focus: bool,
+    pub font_size: u8,
+    pub window_size: (u32, u32)
 }
 impl Default for GuiCFG {
     fn default() -> Self {
@@ -34,6 +36,8 @@ impl Default for GuiCFG {
             icon: true,
             ui_framework: None,
             retain_focus: true,
+            font_size: 12,
+            window_size: (320, 240)
         }
     }
 }
