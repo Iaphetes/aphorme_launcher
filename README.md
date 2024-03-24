@@ -49,7 +49,7 @@ Configuration is now found in $HOME/.config/aphorme/config.toml
 
 Options for the gui.
 
-### icons: boolean
+### icon: boolean
 
 Enable or disable icon loading.
 True by default.
@@ -65,6 +65,14 @@ Forces window to remain in focus even if other windows try to grab focus.
 
 Known issues: Doesn't work with egui + wayland.
 
+
+### font_size
+
+Size of font. Also affects icon size.
+
+### window_size
+
+X and Y dimensions of the launcher. Does not affect font size.
 ## app_cfg
 
 App spanning options.
@@ -103,6 +111,11 @@ Defaults to 10.
 [gui_cfg]
 icon = true
 ui_framework = 'EGUI'
+font_size = 12
+window_size = [
+  300,
+  300,
+]
 [app_cfg]
 paths = ["$HOME/Desktop"]
 ```
@@ -151,3 +164,20 @@ For previous versions see CHANGELOG.md
 ### Fixes
 
 - Updated to egui 0.26 
+
+## 0.1.18
+
+### Features
+
+- Nix support
+
+### Fixes
+
+- Removed erroneous error message on program launch
+
+## 0.1.19
+
+### Features
+
+- Window size settable in 'gui_cfg'
+- Font size settable in 'gui_cfg'
