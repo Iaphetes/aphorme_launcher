@@ -1,5 +1,5 @@
 { lib
-, fetchFromGitHub
+, libGL
 , rustPlatform
 , fontconfig
 , pkg-config
@@ -10,16 +10,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "aphorme";
-  version = "0.1.18";
+  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
 
-  src = fetchFromGitHub {
-    owner = "Iaphetes";
-    repo = "aphorme_launcher";
-    rev = lib.fakeHash;
-    hash = lib.fakeHash;
+  src = lib.cleanSourceWith {
+    src = ./.;
+    filter = path: type:
+      type == "directory" || lib.hasSuffix ".rs" path
+      || lib.hasSuffix ".toml" path || lib.hasSuffix "Cargo.lock" path;
   };
 
-  cargoHash = lib.fakeHash;
+  cargoLock.lockFile = ./Cargo.lock;
 
   # No tests exist
   doCheck = false;
