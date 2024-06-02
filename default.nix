@@ -10,7 +10,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "aphorme";
-  version = "0.1.19";
+  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
 
   src = lib.cleanSourceWith {
     src = ./.;
