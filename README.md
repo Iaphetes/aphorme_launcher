@@ -181,3 +181,10 @@ For previous versions see CHANGELOG.md
 
 - Window size settable in 'gui_cfg'
 - Font size settable in 'gui_cfg'
+
+## 0.1.20
+
+### Fixes
+
+- Nix "Home Manager" path added to default paths. These should now be also searched.
+- Some other Nix related simplifications 

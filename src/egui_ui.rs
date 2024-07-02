@@ -1,15 +1,15 @@
 #[cfg(feature = "egui-ui")]
 pub mod ui {
-    use std::collections::HashMap;
-    use std::path::PathBuf;
+    use std::{fs::File, io::Read};
 
-    use crate::apps::{Application, ApplicationManager};
+    use crate::apps::ApplicationManager;
     use crate::config::GuiCFG;
+    use eframe::egui::TextBuffer;
     use eframe::{
-        egui::{self, FontId, Key, RichText, ViewportCommand},
-        epaint::{Color32, TextureId, Vec2},
+        egui::{self, FontId, Image, Key, RichText, ViewportCommand},
+        epaint::{Color32, Vec2},
     };
-    use egui_extras::RetainedImage;
+
     use log::debug;
     pub fn launch_egui_ui(
         gui_cfg: GuiCFG,
@@ -28,7 +28,11 @@ pub mod ui {
         eframe::run_native(
             "Aphorme",
             options,
-            Box::new(move |_cc| Box::new(EguiUI::new(gui_cfg.clone(), application_manager))),
+            Box::new(move |cc| {
+                egui_extras::install_image_loaders(&cc.egui_ctx);
+
+                Box::new(EguiUI::new(gui_cfg.clone(), application_manager))
+            }),
         )
     }
     struct EguiUI {
@@ -38,13 +42,6 @@ pub mod ui {
         application_manager: ApplicationManager,
         /// The user entered search string
         search_str: String,
-        /// Map containing the Optional TextureIds of the icons matched to the corresponding
-        /// application name
-        icon_ids: HashMap<String, Option<TextureId>>,
-        /// The application icons
-        icons: Vec<RetainedImage>,
-        /// Empty icon to display if no icon has been found yet for the application
-        placeholder_icon: Option<TextureId>,
         /// The GUI configuration
         gui_cfg: GuiCFG,
     }
@@ -55,9 +52,6 @@ pub mod ui {
                 selected: 0,
                 application_manager,
                 search_str: "".to_string(),
-                icon_ids: HashMap::new(),
-                icons: Vec::new(),
-                placeholder_icon: None,
                 gui_cfg,
             }
         }
@@ -80,48 +74,6 @@ pub mod ui {
             }
             if up && self.selected > 0 {
                 self.selected -= 1;
-            }
-        }
-        /// Get the icon from the HashMap. If it is not found load it in and add it to the HashMap.
-        /// Returns None if no icon can be found
-        fn get_icon(
-            &mut self,
-            application: &Application,
-            ctx: &egui::Context,
-        ) -> Option<TextureId> {
-            match self.icon_ids.get(&application.name) {
-                Some(handle) => *handle,
-                None => {
-                    let icon_path: &PathBuf = &application.icon_path.clone()?;
-                    let ext: &str = icon_path.extension()?.to_str()?;
-
-                    let data: Vec<u8> = std::fs::read(icon_path).ok()?;
-                    let image_res: Option<RetainedImage> = match ext {
-                        "png" | "jpg" | "jpeg" => {
-                            egui_extras::image::RetainedImage::from_image_bytes(
-                                &application.name,
-                                data.as_slice(),
-                            )
-                            .ok()
-                        }
-                        "svg" => egui_extras::image::RetainedImage::from_svg_bytes(
-                            &application.name,
-                            data.as_slice(),
-                        )
-                        .ok(),
-                        _ => {
-                            debug!("Unknown file extension {:?}", ext);
-                            None
-                        }
-                    };
-                    let image: RetainedImage = image_res?;
-                    let id: TextureId = image.texture_id(ctx);
-                    if !self.icon_ids.contains_key(&application.name) {
-                        self.icon_ids.insert(application.name.clone(), Some(id));
-                    }
-                    self.icons.push(image);
-                    Some(id)
-                }
             }
         }
     }
@@ -163,46 +115,78 @@ pub mod ui {
                             .iter()
                             .enumerate()
                         {
-                            let label_text: RichText = RichText::new(application.name.clone()).font(FontId::proportional(self.gui_cfg.font_size as f32));
+                            let label_text: RichText = RichText::new(application.name.clone())
+                                .font(FontId::proportional(self.gui_cfg.font_size as f32));
                             let mut background_color: Color32 =
                                 Color32::from_rgba_unmultiplied(0, 0, 0, 0);
                             if i == self.selected {
                                 background_color = Color32::from_rgba_unmultiplied(0, 100, 0, 128);
                             }
-                            let icon_texture_handle: Option<TextureId> =
-                                self.get_icon(application, ctx);
-                            let icon: TextureId = match icon_texture_handle {
-                                Some(handle) => handle,
-                                None => match self.placeholder_icon {
-                                    Some(icon_handle) => icon_handle,
-                                    None => {
-                                        let icon_handle = ctx
-                                            .load_texture(
-                                                "placeholder",
-                                                egui::ColorImage::new(
-                                                    [8, 8],
-                                                    Color32::from_rgba_unmultiplied(0, 0, 0, 0),
-                                                ),
-                                                Default::default(),
-                                            )
-                                            .id();
-                                        self.placeholder_icon = Some(icon_handle);
-                                        icon_handle
+                            let icon_path = &application.icon_path.clone();
+                            let image: Option<Image> = match icon_path {
+                                Some(icon_path) => {
+                                    if let Some(ext_raw) = icon_path.extension() {
+                                        match ext_raw.to_string_lossy().as_str() {
+                                            "png" | "jpg" | "jpeg" | "svg" => {
+                                                let file_uri =
+                                                    icon_path.to_string_lossy().into_owned();
+                                                // println!("{}", file_uri);
+                                                let mut file = File::open(&file_uri.clone())
+                                                    .expect("Failed to open image file");
+                                                let mut bytes = Vec::new();
+                                                file.read_to_end(&mut bytes)
+                                                    .expect("Failed to read image file");
+
+                                                Some(egui::Image::from_bytes(
+                                                    format!("bytes://{}", file_uri),
+                                                    bytes,
+                                                ))
+                                            }
+                                            _ => {
+                                                debug!("Unknown file extension {:?}", ext_raw);
+                                                None
+                                            }
+                                        }
+                                    } else {
+                                        None
                                     }
-                                },
+                                }
+                                None => None,
                             };
+
+                            // let icon: TextureId = match icon_texture_handle {
+                            //     Some(handle) => handle,
+                            //     None => match self.placeholder_icon {
+                            //         Some(icon_handle) => icon_handle,
+                            //         None => {
+                            //             let icon_handle = ctx
+                            //                 .load_texture(
+                            //                     "placeholder",
+                            //                     egui::ColorImage::new(
+                            //                         [8, 8],
+                            //                         Color32::from_rgba_unmultiplied(0, 0, 0, 0),
+                            //                     ),
+                            //                     Default::default(),
+                            //                 )
+                            //                 .id();
+                            //             self.placeholder_icon = Some(icon_handle);
+                            //             icon_handle
+                            //         }
+                            //     },
+                            // };
                             let response = egui::Frame::none()
                                 .fill(background_color)
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {
-                                        if self.gui_cfg.icon {
-                                            ui.add(egui::Image::new(
-                                                egui::load::SizedTexture::new(
-                                                    icon,
-                                                    Vec2::new(self.gui_cfg.font_size as f32, self.gui_cfg.font_size as f32),
-
-                                                ),
-                                            ));
+                                        if let Some(actual_image) = image {
+                                            ui.add(
+                                                actual_image
+                                                    .max_size(Vec2::new(
+                                                        self.gui_cfg.font_size as f32,
+                                                        self.gui_cfg.font_size as f32,
+                                                    ))
+                                                    .show_loading_spinner(true),
+                                            );
                                         }
                                         ui.label(label_text);
                                     })

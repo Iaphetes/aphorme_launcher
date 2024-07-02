@@ -1,6 +1,6 @@
 [package]
 name = "aphorme"
-version = "0.1.19"
+version = "0.1.20"
 edition = "2021"
 description = "A program launcher for X11 and Wayland"
 license = "GPL-3.0"
@@ -10,8 +10,8 @@ homepage = "https://github.com/Iaphetes/aphorme_launcher"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eframe = {version = "0.26", optional = true}
-egui_extras = {version = "0.26", features = ["image", "svg"], optional = true}
+eframe = {version = "0.27", optional = true}
+egui_extras = {version = "0.27", features = ["all_loaders", "image", "svg"], optional = true}
 freedesktop_entry_parser = "1.3.0"
 fuzzy-matcher = "0.3"
 linicon = "2.3"
@@ -23,10 +23,10 @@ confy = "0.6.1"
 dirs = "5"
 single-instance = "0.3"
 iced = {version = "0.12.1", optional = true}
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 env_logger = "0.11.3"
 log = "0.4"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 [features]
 default = ["egui-ui"]
 egui-ui= ["dep:eframe", "dep:egui_extras"]

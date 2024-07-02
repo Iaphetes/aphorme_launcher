@@ -22,7 +22,7 @@ const APPLICATION_PATHS: [&str; 6] = [
     "$HOME/.local/share/applications",
     "/var/lib/flatpak/exports/share/applications",
     "/run/current-system/sw/share/applications",
-    "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/applications"
+    "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/applications",
 ];
 /// The type of application. Either a binary (not yet supported) or a Desktop file
 #[derive(Clone, Eq, PartialEq, Default, Serialize, Deserialize, Hash, Debug)]
