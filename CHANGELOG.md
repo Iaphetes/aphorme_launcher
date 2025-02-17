@@ -30,3 +30,62 @@
 
 - Cleaned up the code somewhat
 - The code will now not error out, when a Desktop file is not readable. If you are missing desktop files run the launcher in the terminal and check the error output.
+
+
+# 0.1.15
+
+## Breaking changes
+
+- Direct input piping now requires the --select-from-stdin argument
+
+## Fixes
+
+- Delay before stdin handling was too short. Now requires --select-from-stdin argument to work.
+- Updated libraries
+
+## Known issues
+
+- EGUIs RetainedImage is deprecated. Will be removed in a future released of Aphorme
+
+# 0.1.16
+
+## Features
+
+- Added option to retain focus on the launcher. Useful if starting multiple slow launching programs
+
+## Known issues
+
+- Focus retention only working with egui + X11. egui does not support focus grabbing on wayland
+
+# 0.1.17
+
+## Features
+
+- Started work on Nix support
+
+## Fixes
+
+- Updated to egui 0.26 
+
+# 0.1.18
+
+## Features
+
+- Nix support
+
+## Fixes
+
+- Removed erroneous error message on program launch
+
+# 0.1.19
+
+## Features
+
+- Window size settable in 'gui_cfg'
+- Font size settable in 'gui_cfg'
+
+# 0.1.20
+
+## Fixes
+
+- Nix "Home Manager" path added to default paths. These should now be also searched.
