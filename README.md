@@ -128,4 +128,3 @@ The egui ScrollArea does not allow for movement using the arrow keys. This means
 
 # Support
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X8X41APVD1)
-- Some other Nix related simplifications 
