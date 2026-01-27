@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use single_instance::SingleInstance;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{DirEntry, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -107,7 +107,7 @@ impl ApplicationManager {
         instance: SingleInstance,
         custom_fields: Vec<String>,
     ) -> ApplicationManager {
-        let mut paths: Vec<String> = config.paths.clone();
+        let mut paths: Vec<String> = config.paths.unwrap_or(Vec::new());
         if config.use_default_paths.is_none() || config.use_default_paths == Some(true) {
             for path in Vec::from(APPLICATION_PATHS)
                 .into_iter()
@@ -128,7 +128,7 @@ impl ApplicationManager {
                     .collect();
                 preferred_apps = Some(PreferredApps::new(
                     &home_dir.to_string_lossy(),
-                    &config.preferred_apps,
+                    &config.preferred_apps.unwrap_or_default(),
                 ));
             }
             None => warn!("Impossible to get your home dir!"),
@@ -294,53 +294,7 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
                     .collect::<Vec<Result<fs::DirEntry, std::io::Error>>>()
                     .iter()
                     .map(|file_res| match file_res {
-                        Ok(file) => {
-                            if !file.file_name().to_string_lossy().ends_with(".desktop") {
-                                return None;
-                            }
-                            let entry: Entry = match parse_entry(file.path()) {
-                                Ok(entry) => entry,
-                                Err(err) => {
-                                    error!(
-                                        "Desktop file {} not readable, due to {:?}",
-                                        file.path().to_string_lossy(),
-                                        err
-                                    );
-                                    return None;
-                                }
-                            };
-                            if let Some(nodisplay) =
-                                entry.section("Desktop Entry").attr("NoDisplay")
-                            {
-                                if nodisplay == "true" {
-                                    return None;
-                                }
-                            }
-
-                            let name: Option<&str> = entry.section("Desktop Entry").attr("Name");
-                            let command: Option<&str> = entry.section("Desktop Entry").attr("Exec");
-                            let icon_path: Option<PathBuf> = None;
-                            let icon_name: Option<String> = entry
-                                .section("Desktop Entry")
-                                .attr("Icon")
-                                .map(|icon| icon.to_owned());
-                            match (name, command) {
-                                (Some(name), Some(command)) => Some(Application {
-                                    name: name.into(),
-                                    command: command.into(),
-                                    icon_path,
-                                    icon_name,
-                                    application_type: ApplicationType::DesktopFile,
-                                }),
-                                _ => {
-                                    error!(
-                                        "Incomplete desktop file {}",
-                                        file.path().to_string_lossy()
-                                    );
-                                    None
-                                }
-                            }
-                        }
+                        Ok(file) => parse_desktop_entry(file),
                         Err(error) => {
                             error!("Error encountered while reading file {:?}", error);
                             None
@@ -357,4 +311,61 @@ pub fn collect_applications(paths: &Vec<String>) -> Vec<Application> {
         }
     }
     applications
+}
+
+fn parse_desktop_entry(file: &DirEntry) -> Option<Application> {
+    if !file.file_name().to_string_lossy().ends_with(".desktop") {
+        return None;
+    }
+    let entry: Entry = match parse_entry(file.path()) {
+        Ok(entry) => entry,
+        Err(err) => {
+            error!(
+                "Desktop file {} not readable, due to {:?}",
+                file.path().to_string_lossy(),
+                err
+            );
+            return None;
+        }
+    };
+    if let Some(desktop_entry) = entry.section("Desktop Entry") {
+        if &desktop_entry
+            .attr("NoDisplay")
+            .get(0)
+            .unwrap_or(&"".to_owned())
+            == &"true"
+        {
+            return None;
+        }
+        let desktop_name = desktop_entry.attr("Name");
+        let name = match desktop_name.get(0) {
+            Some(name) => name,
+            None => {
+                error!("Desktopfile missing name {}", file.path().to_string_lossy());
+                return None;
+            }
+        };
+
+        let command = match desktop_entry.attr("Exec").get(0) {
+            Some(command) => command,
+            None => {
+                error!(
+                    "Desktopfile missing command {}",
+                    file.path().to_string_lossy()
+                );
+                return None;
+            }
+        };
+        let icon_path: Option<PathBuf> = None;
+        let icon_name = desktop_entry.attr("Icon").get(0).map(|res| res.to_owned());
+        Some(Application {
+            name: name.into(),
+            command: command.into(),
+            icon_path,
+            icon_name,
+            application_type: ApplicationType::DesktopFile,
+        })
+    } else {
+        None
+    }
 }

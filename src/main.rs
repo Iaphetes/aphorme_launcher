@@ -3,13 +3,9 @@
 mod apps;
 mod config;
 mod egui_ui;
-mod iced_ui;
 use crate::apps::ApplicationManager;
 use crate::config::{load_config, Config};
-#[cfg(feature = "egui-ui")]
 use crate::egui_ui::ui::launch_egui_ui;
-#[cfg(feature = "iced-ui")]
-use crate::iced_ui::iced_ui::launch_iced_ui;
 use clap::Parser;
 use config::UIFramework;
 use log::{debug, error};
@@ -44,24 +40,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             instance,
             custom_inputs,
         );
-        let gui_framework: UIFramework = cfg.gui_cfg.ui_framework.unwrap_or_default();
-        // let gui_framework: GuiFramework = GuiFramework::EGUI; //cfg.ui_framework.unwrap_or_default();
-        match gui_framework {
-            UIFramework::Egui => {
-                #[cfg(feature = "egui-ui")]
-                match launch_egui_ui(cfg.gui_cfg, application_manager) {
-                    Ok(()) => {}
-                    Err(error) => error!("{error:?}"),
-                };
-                #[cfg(not(feature = "egui-ui"))]
-                panic!("Trying to use egui without \"ui-egui\"-feature activated");
-            }
-
-            UIFramework::Iced => {
-                #[cfg(feature = "iced-ui")]
-                launch_iced_ui(cfg.gui_cfg, application_manager);
-            }
-        }
+        match launch_egui_ui(cfg.gui_cfg, application_manager) {
+            Ok(()) => {}
+            Err(error) => error!("{error:?}"),
+        };
     } else {
         error!("another instance is already running");
     }

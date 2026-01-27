@@ -1,4 +1,3 @@
-#[cfg(feature = "egui-ui")]
 pub mod ui {
     use std::{fs::File, io::Read};
 
@@ -31,7 +30,7 @@ pub mod ui {
             Box::new(move |cc| {
                 egui_extras::install_image_loaders(&cc.egui_ctx);
 
-                Box::new(EguiUI::new(gui_cfg.clone(), application_manager))
+                Ok(Box::new(EguiUI::new(gui_cfg.clone(), application_manager)))
             }),
         )
     }
