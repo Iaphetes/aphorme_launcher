@@ -1,21 +1,12 @@
 # A Linux Program Launcher
 
-This is a Program Launcher written in Rust.
-For the moment it uses multiple different UI toolkits, namely:
-
-- [x] egui
-- [ ] iced
-- [ ] gtk
+This is a Program Launcher written in Rust using the egui framework.
 
 # Features
 
 - Searches for all desktop files in most of the common linux application paths
   - Can be extended using the config file (See `Configuration->app_cfg->paths`)
 - Can be used for dmenu type selection of piped in applications
-
-# Why multiple UI toolkits?
-
-I started using egui for this, which is a great toolkit, but it has some limitations. So I thought I'd try some other toolkits. This I think is a reasonably simple UI, but with some quirks (like the keyboard scrolling) which I can use to compare ease of use and feature sets.
 
 # Why another program launcher?
 
@@ -54,11 +45,6 @@ Options for the gui.
 Enable or disable icon loading.
 True by default.
 
-### GuiFramework
-
-Which GuiFramework to used. At the moment EGUI and ICED.
-Note that at the moment ICED is not compiled into the launcher by default. To do so compile with the feature `iced-ui`
-
 ### retain_focus: boolean
 
 Forces window to remain in focus even if other windows try to grab focus.
@@ -89,11 +75,13 @@ Defaults to `true`
 
 Default paths are
 
-```toml
+```toml 
   "/usr/share/applications",
   "/usr/local/share/applications",
   "$HOME/.local/share/applications",
-  "/var/lib/flatpak/exports/share/applications"
+  "/var/lib/flatpak/exports/share/applications",
+  "/run/current-system/sw/share/applications",
+  "$HOME/.local/state/home-manager/gcroots/current-home/home-path/share/applications",
 ```
 
 ### preferred_apps

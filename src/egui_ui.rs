@@ -1,4 +1,5 @@
 pub mod ui {
+    use std::f32;
     use std::{fs::File, io::Read};
 
     use crate::apps::ApplicationManager;
@@ -98,7 +99,9 @@ pub mod ui {
                 self.application_manager.load_next_icons(5);
             }
             egui::CentralPanel::default().show(ctx, |ui| {
-                let response = ui.add(egui::TextEdit::singleline(&mut self.search_str));
+                let response = ui.add(
+                    egui::TextEdit::singleline(&mut self.search_str).desired_width(f32::INFINITY),
+                );
                 response.request_focus();
                 if response.changed() {
                     self.application_manager.find_application(&self.search_str);
@@ -152,28 +155,7 @@ pub mod ui {
                                 }
                                 None => None,
                             };
-
-                            // let icon: TextureId = match icon_texture_handle {
-                            //     Some(handle) => handle,
-                            //     None => match self.placeholder_icon {
-                            //         Some(icon_handle) => icon_handle,
-                            //         None => {
-                            //             let icon_handle = ctx
-                            //                 .load_texture(
-                            //                     "placeholder",
-                            //                     egui::ColorImage::new(
-                            //                         [8, 8],
-                            //                         Color32::from_rgba_unmultiplied(0, 0, 0, 0),
-                            //                     ),
-                            //                     Default::default(),
-                            //                 )
-                            //                 .id();
-                            //             self.placeholder_icon = Some(icon_handle);
-                            //             icon_handle
-                            //         }
-                            //     },
-                            // };
-                            let response = egui::Frame::none()
+                            let response = egui::Frame::new()
                                 .fill(background_color)
                                 .show(ui, |ui| {
                                     ui.horizontal(|ui| {

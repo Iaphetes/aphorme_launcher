@@ -7,7 +7,6 @@ use crate::apps::ApplicationManager;
 use crate::config::{load_config, Config};
 use crate::egui_ui::ui::launch_egui_ui;
 use clap::Parser;
-use config::UIFramework;
 use log::{debug, error};
 use single_instance::SingleInstance;
 use std::error::Error;

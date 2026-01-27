@@ -1,16 +1,6 @@
-use log::{debug, error, warn};
+use log::error;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum UIFramework {
-    Egui,
-    Iced,
-}
-impl Default for UIFramework {
-    fn default() -> Self {
-        return Self::Egui;
-    }
-}
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub gui_cfg: GuiCFG,

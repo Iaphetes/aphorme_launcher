@@ -89,3 +89,11 @@
 ## Fixes
 
 - Nix "Home Manager" path added to default paths. These should now be also searched.
+# 0.2.0
+## Features
+- Removed unused Iced code
+## Fixes
+- Fixed config bug, where a missing key would cause the entire config to be overridden
+
+## Other
+- Updates egui, eframe and most other libraries
